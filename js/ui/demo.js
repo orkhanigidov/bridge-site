@@ -1,9 +1,8 @@
 /**
- * Demo state machine: submit a job to the runner, poll until it finishes,
- * then display the graph data the runner returned.
+ * Demo state machine: execute a script on the Engine (one synchronous request),
+ * then show the SVG graphs the Engine returned on both panels.
  */
 import { CHECKS, STAGES, PARAMS } from '../config/site.js';
-import { renderGraph } from '../render/graphView.js';
 import { initCodeTabs } from './codeTabs.js';
 import { createRunRecord } from './runRecord.js';
 
@@ -11,7 +10,13 @@ export function initDemo(root, client, config) {
     const els = {
         runnerUrl: root.querySelector('#runner-url'),
         loadCases: root.querySelector('#load-cases'),
-        caseSelect: root.querySelector('#case-select'),
+        methodSelect: root.querySelector('#method-select'),
+        graphSelect: root.querySelector('#graph-select'),
+        sourceDirect: root.querySelector('#source-direct'),
+        sourceBridge: root.querySelector('#source-bridge'),
+        runCustom: root.querySelector('#run-custom'),
+        graphDirect: root.querySelector('#graph-direct'),
+        graphBridge: root.querySelector('#graph-bridge'),
         paramsRow: root.querySelector('#params-row'),
         paramsNote: root.querySelector('#params-note'),
         nodes: root.querySelector('#nodes'),
@@ -44,11 +49,28 @@ export function initDemo(root, client, config) {
         codeView: root.querySelector('#code-view'),
     });
 
-    const state = { busy: false, caseId: '', cases: new Map(), startedAt: 0 };
+    const state = { busy: false, codeId: '', codes: new Map(), startedAt: 0, isCustomCode: false };
 
-    if (config.defaultApiKey) els.runnerUrl.value = config.defaultApiKey;
+    const STORAGE_KEY = 'bridge_api_secret';
+    const savedSecret = localStorage.getItem(STORAGE_KEY);
+    if (savedSecret) {
+        els.runnerUrl.value = savedSecret;
+    } else if (config.defaultApiKey) {
+        els.runnerUrl.value = config.defaultApiKey;
+    }
 
-    /* ---------- static panels ---------- */
+    els.runnerUrl.addEventListener('input', () => {
+        localStorage.setItem(STORAGE_KEY, els.runnerUrl.value);
+    });
+
+    // If we already have a secret, hide the input field and load resources automatically
+    if (els.runnerUrl.value) {
+        const container = els.runnerUrl.closest('.runner-url');
+        if (container) container.hidden = true;
+        // We will call loadResources later in the function after it is defined
+    }
+
+    /* ---- static panels ---- */
 
     for (const check of CHECKS) {
         const row = document.createElement('div');
@@ -77,7 +99,6 @@ export function initDemo(root, client, config) {
     function renderStages(seen, failed) {
         const order = STAGES.map((stage) => stage.id);
         const failedIdx = failed ? order.indexOf(failed) : -1;
-        // Find the first stage in order that hasn't been seen yet (the active one)
         let activeIdx = -1;
         for (let i = 0; i < order.length; i++) {
             if (!seen.has(order[i])) {
@@ -95,7 +116,7 @@ export function initDemo(root, client, config) {
         }
     }
 
-    /* ---------- status, busy state, params ---------- */
+    /* ---- status, busy state, params ---- */
 
     const setStatus = (message, jobState = '') => {
         els.statusMessage.textContent = message;
@@ -107,7 +128,7 @@ export function initDemo(root, client, config) {
         state.busy = busy;
         els.loadCases.disabled = busy;
         els.runCustom.disabled = busy;
-        els.runCustom.textContent = busy ? 'Executing script…' : 'Execute script';
+        els.runCustom.textContent = busy ? 'Executing…' : 'Execute';
     };
 
     const currentParams = () => ({
@@ -130,134 +151,166 @@ export function initDemo(root, client, config) {
         els.seedVal.textContent = String(newVal);
         els.seedVal.setAttribute('aria-valuenow', String(newVal));
     });
-
-    // Keyboard support for node distance value
-    els.seedVal.addEventListener('keydown', (e) => {
-        let newVal = Number(els.seedVal.textContent);
-        if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            newVal = Math.min(PARAMS.nodeDistance.max, newVal + 1);
-        } else if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            newVal = Math.max(PARAMS.nodeDistance.min, newVal - 1);
-        } else if (e.key === 'Home') {
-            e.preventDefault();
-            newVal = PARAMS.nodeDistance.min;
-        } else if (e.key === 'End') {
-            e.preventDefault();
-            newVal = PARAMS.nodeDistance.max;
-        } else {
-            return;
-        }
-        els.seedVal.textContent = String(newVal);
-        els.seedVal.setAttribute('aria-valuenow', String(newVal));
-    });
     syncParamLabels();
 
-    /* ---------- case loading ---------- */
+    /* ---- output panels ---- */
 
-    function showCaseSources(testCase) {
-        els.sourceDirect.value = testCase?.directSource || '';
-        els.sourceBridge.value = testCase?.bridgeSource || '';
+    function showOutput(panel, svgText) {
+        const svg = String(svgText || '').trim();
+        panel.textContent = '';
+        if (svg.includes('<svg')) {
+            panel.innerHTML = svg; // ready SVG from the Engine
+        } else {
+            const note = document.createElement('p');
+            note.className = 'graph-empty';
+            note.textContent = 'No graph output for this side.';
+            panel.append(note);
+        }
+    }
+
+    /* ---- case loading ---- */
+
+    function showCodeSources(code) {
+        els.sourceDirect.value = code?.cpp || '';
+        els.sourceBridge.value = code?.lua || '';
         codeTabs.setSource('direct', els.sourceDirect.value);
         codeTabs.setSource('bridge', els.sourceBridge.value);
     }
 
-    function applyCaseSelection() {
-        state.caseId = els.caseSelect.value;
-        const testCase = state.cases.get(state.caseId);
-        const predefined = Boolean(testCase);
-        // Predefined pairs are read-only in the editors; custom pairs are editable.
-        els.sourceDirect.readOnly = predefined;
-        els.sourceBridge.readOnly = predefined;
-        els.fileDirect.disabled = predefined;
-        els.fileBridge.disabled = predefined;
-        els.paramsRow.hidden = !predefined;
-        els.paramsNote.hidden = !predefined;
-        showCaseSources(testCase);
-    }
+    async function applySelection() {
+        const method = els.methodSelect.value;
+        const graph = els.graphSelect.value;
+        if (!method || !graph) return;
 
-    async function loadCases() {
+        // Only warn if the user has uploaded a custom file or manually edited the code.
+        // If the code was loaded from a layout method, we allow switching without confirmation.
+        if (state.isCustomCode && (els.sourceDirect.value.trim() || els.sourceBridge.value.trim())) {
+            const confirmed = confirm('You have uploaded custom code. Replacing it with the layout method source will delete your changes. Continue?');
+            if (!confirmed) return;
+        }
+
         try {
             setBusy(true);
-            setStatus('Loading scripts from the Engine…');
-            const cases = await client.loadCases(els.runnerUrl.value);
+            setStatus(`Fetching source for ${method} with ${graph}...`);
+            const source = await client.getSourceCode(els.runnerUrl.value, method, graph);
 
-            els.caseSelect.textContent = '';
-            const placeholder = document.createElement('option');
-            placeholder.value = '';
-            placeholder.textContent = cases.length ? 'Custom script (paste or upload below)' : 'Engine is connected, but returned no scripts';
-            els.caseSelect.append(placeholder);
-            state.cases = new Map(cases.map((testCase) => [testCase.id, testCase]));
-            for (const testCase of cases) {
-                const option = document.createElement('option');
-                option.value = testCase.id;
-                option.textContent = testCase.name || testCase.id;
-                els.caseSelect.append(option);
+            const cppCode = source.cpp_code || source.cpp || '';
+            const luaCode = source.lua_code || source.lua || '';
+
+            els.sourceDirect.value = cppCode;
+            els.sourceBridge.value = luaCode;
+
+            // Reset isCustomCode because we just loaded a predefined layout method
+            state.isCustomCode = false;
+
+            if (typeof codeTabs !== 'undefined') {
+                codeTabs.setSource('direct', els.sourceDirect.value);
+                codeTabs.setSource('bridge', els.sourceBridge.value);
             }
 
-            els.caseSelect.value = '';
-            applyCaseSelection();
             setBusy(false);
-            setStatus(cases.length ? 'Scripts loaded from the Engine. Pick a predefined pair or paste your own.' : 'Engine is connected, but no scripts were returned.');
+            setStatus('Source code loaded. Ready to execute.');
         } catch (error) {
             setBusy(false);
-            setStatus(`Could not load cases: ${error.message}`);
+            setStatus(`Error fetching source: ${error.message}`);
         }
     }
 
-    els.loadCases.addEventListener('click', () => loadCases());
-    els.caseSelect.addEventListener('change', () => {
-        applyCaseSelection();
-    });
+    els.methodSelect.addEventListener('change', () => applySelection());
+    els.graphSelect.addEventListener('change', () => applySelection());
 
-    /* ---------- running ---------- */
+    async function loadResources() {
+        try {
+            setBusy(true);
+            setStatus('Loading resources from the Engine…');
+            const data = await client.loadAvailableResources(els.runnerUrl.value);
+            const { methods, files } = data;
+
+            els.methodSelect.textContent = '';
+            const methodPlaceholder = document.createElement('option');
+            methodPlaceholder.value = '';
+            methodPlaceholder.textContent = 'Pick a layout method…';
+            els.methodSelect.append(methodPlaceholder);
+
+            for (const name of methods) {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                els.methodSelect.append(option);
+            }
+
+            els.graphSelect.textContent = '';
+            const graphPlaceholder = document.createElement('option');
+            graphPlaceholder.value = '';
+            graphPlaceholder.textContent = files && files.length ? 'Pick an input graph…' : 'No GraphML files returned';
+            els.graphSelect.append(graphPlaceholder);
+            if (files) {
+                for (const name of files) {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    els.graphSelect.append(option);
+                }
+            }
+
+            setBusy(false);
+            setStatus('Resources loaded from the Engine. Pick a method and a graph to see the source code.');
+        } catch (error) {
+            setBusy(false);
+            setStatus(`Could not load resources: ${error.message}`);
+
+            // If auto-loading failed, clear the secret and show the input again
+            els.runnerUrl.value = '';
+            localStorage.removeItem(STORAGE_KEY);
+            const container = els.runnerUrl.closest('.runner-url');
+            if (container) container.hidden = false;
+        }
+    }
+
+    els.loadCases.addEventListener('click', () => loadResources());
+
+    // Auto-load resources if API secret is already present
+    if (els.runnerUrl.value) {
+        loadResources();
+    }
+
+    /* ---- executing ---- */
 
     async function run() {
         const apiKey = els.runnerUrl.value;
-        const predefined = Boolean(state.caseId);
-        if (!predefined && (!els.sourceDirect.value.trim() || !els.sourceBridge.value.trim())) {
-            setStatus('Add both the C++ code and the Lua script to compare.');
+        const graphName = els.graphSelect.value;
+        const method = els.methodSelect.value;
+        const predefined = Boolean(state.codeId);
+        if (!predefined && !els.sourceBridge.value.trim()) {
+            setStatus('Add a Lua script to execute, or pick a predefined example.');
             return;
         }
 
-        const payload = predefined
-            ? { mode: 'case', caseId: state.caseId, params: currentParams() }
-            : { mode: 'custom', directSource: els.sourceDirect.value, bridgeSource: els.sourceBridge.value };
+        const payload = {
+            cpp: els.sourceDirect.value,
+            lua: els.sourceBridge.value
+        };
 
         try {
             setBusy(true);
             state.startedAt = Date.now();
-            renderGraph(els.graphDirect, null);
-            renderGraph(els.graphBridge, null);
+            showOutput(els.graphDirect, '');
+            showOutput(els.graphBridge, '');
             els.stagesSummary.hidden = true;
             renderStages(new Set(['queued']), null);
 
             els.record.begin('engine', payload);
-            setStatus('Sending script to the Engine…', 'queued');
+            setStatus('Executing sequentially on the Engine…', 'executing');
 
-            const seen = new Set(['queued']);
-            const result = await client.runJob(apiKey, payload, (job) => {
-                const status = job.status || 'running';
-                const stage = job.stage && STAGES.some((entry) => entry.id === job.stage) ? job.stage : (status === 'running' ? 'running' : null);
-                if (stage && !seen.has(stage)) {
-                    seen.add(stage);
-                    els.record.line(`runner reports: ${status}${stage && stage !== status ? ` (${stage})` : ''}`, 'muted');
-                }
-                renderStages(seen, null);
-                setStatus(
-                    status === 'running' ? 'The Engine is executing the Lua script…' : 'Connecting to the Engine…',
-                    stage || status,
-                );
-            });
+            const result = await client.executeSequential(apiKey, payload);
 
             renderStages(STAGES.map((stage) => stage.id).reduce((set, id) => set.add(id), new Set()), null);
             els.stagesSummary.hidden = false;
-            els.stagesSummary.textContent = `${predefined ? payload.caseId : 'custom script'} · succeeded`;
-            renderGraph(els.graphDirect, result.directGraph);
-            renderGraph(els.graphBridge, result.bridgeGraph);
+            els.stagesSummary.textContent = `custom script · succeeded`;
+            showOutput(els.graphDirect, result.svgs?.cpp || '');
+            showOutput(els.graphBridge, result.svgs?.lua || '');
             const waitedS = (Date.now() - state.startedAt) / 1000;
-            els.record.finish(result.jobId, 'succeeded', waitedS);
+            els.record.finish('custom script', 'succeeded', waitedS);
             setStatus('Completed. Showing graph data returned by the Engine.', 'succeeded');
         } catch (error) {
             els.record.fail(error.message);
@@ -272,7 +325,7 @@ export function initDemo(root, client, config) {
 
     els.runCustom.addEventListener('click', () => run());
 
-    /* ---------- custom sources ---------- */
+    /* ---- custom sources ---- */
 
     function bindFileSource(input, textarea, path) {
         input.addEventListener('change', async () => {
@@ -280,6 +333,7 @@ export function initDemo(root, client, config) {
             if (file) {
                 textarea.value = await file.text();
                 codeTabs.setSource(path, textarea.value);
+                state.isCustomCode = true;
             }
             input.value = '';
         });
@@ -294,6 +348,6 @@ export function initDemo(root, client, config) {
     bindFileSource(els.fileDirect, els.sourceDirect, 'direct');
     bindFileSource(els.fileBridge, els.sourceBridge, 'bridge');
 
-    renderGraph(els.graphDirect, null);
-    renderGraph(els.graphBridge, null);
+    showOutput(els.graphDirect, '');
+    showOutput(els.graphBridge, '');
 }

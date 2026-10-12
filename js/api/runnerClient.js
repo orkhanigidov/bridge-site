@@ -14,9 +14,9 @@ export class RunnerError extends Error {
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
-// Engine base URL — the deployed BRIDGE Engine endpoint (thesis A.4.3: http://localhost:8000).
+// Engine base URL — the deployed BRIDGE Engine endpoint.
 // Configure here or deploy behind a reverse proxy; visitors authenticate with an API secret key.
-const ENGINE_BASE_URL = (window.ENGINE_BASE_URL || 'http://localhost:8000').replace(/\/+$/, '');
+const ENGINE_BASE_URL = (window.ENGINE_BASE_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '');
 
 function assertApiKey(apiKey) {
     const key = String(apiKey || '').trim();
@@ -43,6 +43,40 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export function createRunnerClient({ pollIntervalMs = 1500, pollTimeoutMs = 180000 } = {}) {
     return {
+        /** GET /api/discovery → { methods: [], files: [] } */
+        async loadAvailableResources(apiKey) {
+            const key = assertApiKey(apiKey);
+            const data = await requestJson(`${ENGINE_BASE_URL}/api/discovery`, {
+                headers: { 'X-API-Secret': key },
+            });
+            return data;
+        },
+
+        /** GET /api/source/{method}?graph=... → { cpp: "...", lua: "..." } */
+        async getSourceCode(apiKey, method, graph) {
+            const key = assertApiKey(apiKey);
+            const path = `/api/source/${encodeURIComponent(method)}`;
+            const query = `?graph=${encodeURIComponent(graph)}`;
+            const url = `${ENGINE_BASE_URL}${path}${query}`;
+
+            const data = await requestJson(url, {
+                headers: { 'X-API-Secret': key },
+            });
+            return data;
+        },
+
+        /** POST /api/execute_sequential → { results: { cpp: "...", lua: "..." }, svgs: { cpp: "...", lua: "..." } } */
+        async executeSequential(apiKey, payload) {
+            const key = assertApiKey(apiKey);
+            const authHeaders = { ...JSON_HEADERS, 'X-API-Secret': key };
+            const data = await requestJson(`${ENGINE_BASE_URL}/api/execute_sequential`, {
+                method: 'POST',
+                headers: authHeaders,
+                body: JSON.stringify(payload),
+            });
+            return data;
+        },
+
         /** GET /cases → { cases: [{ id, name, sourceA?, sourceB? }] } */
         async loadCases(apiKey) {
             const key = assertApiKey(apiKey);

@@ -91,10 +91,20 @@
                 </noscript>
 
                 <div id="panel-case" class="mode-panel">
-                    <label class="label" for="case-select">Script pair (from the Engine)</label>
-                    <select id="case-select">
-                        <option value="">Connect the Engine to load available scripts</option>
-                    </select>
+                    <div class="control-row">
+                        <div class="control">
+                            <label class="label" for="method-select">Layout Method</label>
+                            <select id="method-select">
+                                <option value="">Connect the Engine to load methods</option>
+                            </select>
+                        </div>
+                        <div class="control">
+                            <label class="label" for="graph-select">GraphML File</label>
+                            <select id="graph-select">
+                                <option value="">Connect the Engine to load graphs</option>
+                            </select>
+                        </div>
+                    </div>
 
                     <div class="params-row" id="params-row" hidden>
                         <div class="control">
@@ -111,8 +121,7 @@
                                     <button class="seed-btn" id="seed-dec" type="button"
                                         aria-label="Decrease node distance">−</button>
                                     <span class="seed-val" id="seed-val" role="spinbutton" aria-labelledby="seed-label"
-                                        aria-valuemin="1" aria-valuemax="100" aria-valuenow="3"
-                                        tabindex="0">3</span>
+                                        aria-valuemin="1" aria-valuemax="100" aria-valuenow="3" tabindex="0">3</span>
                                     <button class="seed-btn" id="seed-inc" type="button"
                                         aria-label="Increase node distance">+</button>
                                 </div>
@@ -126,8 +135,8 @@
                         <div class="editor">
                             <div class="editor-head">
                                 <label class="label" for="source-direct">C++ (direct OGDF)</label>
-                                <label class="upload" for="file-direct">Upload .cpp<input id="file-direct"
-                                        type="file" accept=".cpp,.cc,.cxx,.h,.hpp,.txt"></label>
+                                <label class="upload" for="file-direct">Upload .cpp<input id="file-direct" type="file"
+                                        accept=".cpp,.cc,.cxx,.h,.hpp,.txt"></label>
                             </div>
                             <textarea id="source-direct" spellcheck="false"
                                 placeholder="Paste the C++ code for direct OGDF execution…"></textarea>
@@ -135,8 +144,8 @@
                         <div class="editor">
                             <div class="editor-head">
                                 <label class="label" for="source-bridge">Lua script (via BRIDGE)</label>
-                                <label class="upload" for="file-bridge">Upload .lua<input id="file-bridge"
-                                        type="file" accept=".lua,.txt"></label>
+                                <label class="upload" for="file-bridge">Upload .lua<input id="file-bridge" type="file"
+                                        accept=".lua,.txt"></label>
                             </div>
                             <textarea id="source-bridge" spellcheck="false"
                                 placeholder="Paste the Lua script for execution through BRIDGE…"></textarea>
@@ -145,7 +154,8 @@
                     <div class="custom-foot">
                         <p class="mode-note">Both sources are sent to the Engine for execution via
                             <code>/api/execute_script</code>. The Engine enforces a whitelist sandbox — only
-                            <code>base, math, table, string</code> libraries are loaded.</p>
+                            <code>base, math, table, string</code> libraries are loaded.
+                        </p>
                         <button id="run-custom" class="btn btn--primary" type="button">Execute script</button>
                     </div>
                 </div>
@@ -408,7 +418,11 @@
                             <h3>Build BRIDGE</h3>
                             <p>Clone the repository and compile the BRIDGE components with the bootstrap script.</p>
                             <div class="codeblock codeblock--flat" data-copy-scope>
-                                <div class="codeblock-head"><span class="terminal-dots" aria-hidden="true"><span class="terminal-dot terminal-dot--red"></span><span class="terminal-dot terminal-dot--yellow"></span><span class="terminal-dot terminal-dot--green"></span></span><span class="codeblock-title">terminal</span>
+                                <div class="codeblock-head"><span class="terminal-dots" aria-hidden="true"><span
+                                            class="terminal-dot terminal-dot--red"></span><span
+                                            class="terminal-dot terminal-dot--yellow"></span><span
+                                            class="terminal-dot terminal-dot--green"></span></span><span
+                                        class="codeblock-title">terminal</span>
                                     <button class="copy-btn" type="button" data-copy aria-label="Copy command"><svg
                                             width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                                             <rect x="5" y="5" width="9" height="9" stroke="currentColor"
@@ -430,9 +444,14 @@
                         <span class="step-num">Step 2</span>
                         <div>
                             <h3>Verify the Engine build</h3>
-                            <p>Confirm the build artifacts exist: Engine.dll (native mode) or Engine.exe (network server).</p>
+                            <p>Confirm the build artifacts exist: Engine.dll (native mode) or Engine.exe (network
+                                server).</p>
                             <div class="codeblock codeblock--flat" data-copy-scope>
-                                <div class="codeblock-head"><span class="terminal-dots" aria-hidden="true"><span class="terminal-dot terminal-dot--red"></span><span class="terminal-dot terminal-dot--yellow"></span><span class="terminal-dot terminal-dot--green"></span></span><span class="codeblock-title">terminal</span>
+                                <div class="codeblock-head"><span class="terminal-dots" aria-hidden="true"><span
+                                            class="terminal-dot terminal-dot--red"></span><span
+                                            class="terminal-dot terminal-dot--yellow"></span><span
+                                            class="terminal-dot terminal-dot--green"></span></span><span
+                                        class="codeblock-title">terminal</span>
                                     <button class="copy-btn" type="button" data-copy aria-label="Copy command"><svg
                                             width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                                             <rect x="5" y="5" width="9" height="9" stroke="currentColor"
@@ -455,7 +474,11 @@
                                 mode: start the Engine server, then point GAV-VR at it. A headset is optional —
                                 GAV-VR also renders in a normal desktop window.</p>
                             <div class="codeblock codeblock--flat" data-copy-scope>
-                                <div class="codeblock-head"><span class="terminal-dots" aria-hidden="true"><span class="terminal-dot terminal-dot--red"></span><span class="terminal-dot terminal-dot--yellow"></span><span class="terminal-dot terminal-dot--green"></span></span><span class="codeblock-title">terminal</span>
+                                <div class="codeblock-head"><span class="terminal-dots" aria-hidden="true"><span
+                                            class="terminal-dot terminal-dot--red"></span><span
+                                            class="terminal-dot terminal-dot--yellow"></span><span
+                                            class="terminal-dot terminal-dot--green"></span></span><span
+                                        class="codeblock-title">terminal</span>
                                     <button class="copy-btn" type="button" data-copy aria-label="Copy command"><svg
                                             width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                                             <rect x="5" y="5" width="9" height="9" stroke="currentColor"
@@ -484,7 +507,11 @@
                             <p>The Engine's Network mode exposes a REST API. Send a script-execution request with curl
                                 On AWS, the API Gateway endpoint requires IAM/SigV4-signed requests.</p>
                             <div class="codeblock codeblock--flat" data-copy-scope>
-                                <div class="codeblock-head"><span class="terminal-dots" aria-hidden="true"><span class="terminal-dot terminal-dot--red"></span><span class="terminal-dot terminal-dot--yellow"></span><span class="terminal-dot terminal-dot--green"></span></span><span class="codeblock-title">terminal</span>
+                                <div class="codeblock-head"><span class="terminal-dots" aria-hidden="true"><span
+                                            class="terminal-dot terminal-dot--red"></span><span
+                                            class="terminal-dot terminal-dot--yellow"></span><span
+                                            class="terminal-dot terminal-dot--green"></span></span><span
+                                        class="codeblock-title">terminal</span>
                                     <button class="copy-btn" type="button" data-copy aria-label="Copy command"><svg
                                             width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                                             <rect x="5" y="5" width="9" height="9" stroke="currentColor"
