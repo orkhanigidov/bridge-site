@@ -24,15 +24,10 @@ export function initDemo(root, client, config) {
         seedDec: root.querySelector('#seed-dec'),
         seedInc: root.querySelector('#seed-inc'),
         seedVal: root.querySelector('#seed-val'),
-        runCustom: root.querySelector('#run-custom'),
-        sourceDirect: root.querySelector('#source-direct'),
-        sourceBridge: root.querySelector('#source-bridge'),
         fileDirect: root.querySelector('#file-direct'),
         fileBridge: root.querySelector('#file-bridge'),
         statusMessage: root.querySelector('#status-message'),
         statusJob: root.querySelector('#status-job'),
-        graphDirect: root.querySelector('#graph-direct'),
-        graphBridge: root.querySelector('#graph-bridge'),
         checksList: root.querySelector('#checks-list'),
         stagesList: root.querySelector('#stages-list'),
         stagesSummary: root.querySelector('#stages-summary'),
@@ -131,11 +126,6 @@ export function initDemo(root, client, config) {
         els.runCustom.textContent = busy ? 'Executing…' : 'Execute';
     };
 
-    const currentParams = () => ({
-        layerDistance: Number(els.nodes.value),
-        nodeDistance: Number(els.seedVal.textContent),
-    });
-
     function syncParamLabels() {
         els.nodesVal.textContent = els.nodes.value;
     }
@@ -169,13 +159,6 @@ export function initDemo(root, client, config) {
     }
 
     /* ---- case loading ---- */
-
-    function showCodeSources(code) {
-        els.sourceDirect.value = code?.cpp || '';
-        els.sourceBridge.value = code?.lua || '';
-        codeTabs.setSource('direct', els.sourceDirect.value);
-        codeTabs.setSource('bridge', els.sourceBridge.value);
-    }
 
     async function applySelection() {
         const method = els.methodSelect.value;
@@ -279,16 +262,24 @@ export function initDemo(root, client, config) {
     async function run() {
         const apiKey = els.runnerUrl.value;
         const graphName = els.graphSelect.value;
-        const method = els.methodSelect.value;
-        const predefined = Boolean(state.codeId);
-        if (!predefined && !els.sourceBridge.value.trim()) {
-            setStatus('Add a Lua script to execute, or pick a predefined example.');
+
+        if (!graphName) {
+            setStatus('Pick an input GraphML file first — the Engine uses it to resolve __input__.');
+            return;
+        }
+        if (!els.sourceDirect.value.trim()) {
+            setStatus('Add C++ code to execute, or load a predefined example.');
+            return;
+        }
+        if (!els.sourceBridge.value.trim()) {
+            setStatus('Add a Lua script to execute, or load a predefined example.');
             return;
         }
 
         const payload = {
-            cpp: els.sourceDirect.value,
-            lua: els.sourceBridge.value
+            cpp_code: els.sourceDirect.value,
+            lua_code: els.sourceBridge.value,
+            input_file: graphName,
         };
 
         try {
@@ -306,7 +297,7 @@ export function initDemo(root, client, config) {
 
             renderStages(STAGES.map((stage) => stage.id).reduce((set, id) => set.add(id), new Set()), null);
             els.stagesSummary.hidden = false;
-            els.stagesSummary.textContent = `custom script · succeeded`;
+            els.stagesSummary.textContent = 'custom script · succeeded';
             showOutput(els.graphDirect, result.svgs?.cpp || '');
             showOutput(els.graphBridge, result.svgs?.lua || '');
             const waitedS = (Date.now() - state.startedAt) / 1000;

@@ -1,7 +1,7 @@
 /**
  * HTTP client for the BRIDGE Engine (Network mode).
  * The browser never executes C++ — every method talks to the Engine's
- * REST API (POST /api/execute_script) and returns the
+ * REST API (POST /api/execute_sequential) and returns the
  * Engine's own responses.
  */
 
@@ -52,7 +52,7 @@ export function createRunnerClient({ pollIntervalMs = 1500, pollTimeoutMs = 1800
             return data;
         },
 
-        /** GET /api/source/{method}?graph=... → { cpp: "...", lua: "..." } */
+        /** GET /api/source/{method} → { cpp_code: "...", lua_code: "..." } */
         async getSourceCode(apiKey, method, graph) {
             const key = assertApiKey(apiKey);
             const path = `/api/source/${encodeURIComponent(method)}`;
@@ -65,16 +65,34 @@ export function createRunnerClient({ pollIntervalMs = 1500, pollTimeoutMs = 1800
             return data;
         },
 
-        /** POST /api/execute_sequential → { results: { cpp: "...", lua: "..." }, svgs: { cpp: "...", lua: "..." } } */
+        /** POST /api/execute_sequential.
+         *  Engine request: { cpp_code, lua_code, input_file }.
+         *  Engine response: { success, message, cpp_svg, lua_svg } with base64 SVGs.
+         *  Normalized here to { success, message, svgs: { cpp, lua } } with SVG text. */
         async executeSequential(apiKey, payload) {
             const key = assertApiKey(apiKey);
             const authHeaders = { ...JSON_HEADERS, 'X-API-Secret': key };
+
+            const requestPayload = {
+                cpp_code: payload.cpp_code,
+                lua_code: payload.lua_code,
+                graphml_file: payload.graphml_file || payload.input_file,
+            };
+
             const data = await requestJson(`${ENGINE_BASE_URL}/api/execute_sequential`, {
                 method: 'POST',
                 headers: authHeaders,
-                body: JSON.stringify(payload),
+                body: JSON.stringify(requestPayload),
             });
-            return data;
+
+            return {
+                success: Boolean(data.success),
+                message: data.message || '',
+                svgs: {
+                    cpp: data.cpp_svg || '',
+                    lua: data.lua_svg || '',
+                },
+            };
         },
 
         /** GET /cases → { cases: [{ id, name, sourceA?, sourceB? }] } */
