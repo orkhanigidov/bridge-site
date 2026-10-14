@@ -1,10 +1,7 @@
 /**
- * HTTP client for the BRIDGE Engine (Network mode).
- * The browser never executes C++ — every method talks to the Engine's
- * REST API (POST /api/execute_sequential) and returns the
- * Engine's own responses.
+ * HTTPS client for the BRIDGE Engine.
+ * API secrets are sent only in request headers, never in URLs.
  */
-
 export class RunnerError extends Error {
     constructor(message) {
         super(message);
@@ -12,31 +9,63 @@ export class RunnerError extends Error {
     }
 }
 
+// Fixed host: URL query/fragment and HTTP protocol are not accepted.
+const ENGINE_BASE_URL = 'https://api.bridgeengine.tech';
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
-
-// Engine base URL — the deployed BRIDGE Engine endpoint.
-// Configure here or deploy behind a reverse proxy; visitors authenticate with an API secret key.
-const ENGINE_BASE_URL = (window.ENGINE_BASE_URL || 'http://127.0.0.1:8000').replace(/\/+$/, '');
+const REQUEST_TIMEOUT_MS = 180_000;
 
 function assertApiKey(apiKey) {
-    const key = String(apiKey || '').trim();
-    if (!key) {
-        throw new RunnerError('Enter your generated API secret key first.');
+    if (typeof apiKey !== 'string' || !apiKey.trim()) {
+        throw new RunnerError('Enter your API secret key first.');
     }
-    return key;
+
+    return apiKey.trim();
 }
 
 async function requestJson(url, options = {}) {
-    let response;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(
+        () => controller.abort(),
+        REQUEST_TIMEOUT_MS
+    );
+
     try {
-        response = await fetch(url, options);
-    } catch {
-        throw new RunnerError('Could not reach the Engine. Check the URL and that Engine.exe is running.');
+        const response = await fetch(url, {
+            ...options,
+            // Prevents secret headers from being forwarded to another host via redirects.
+            redirect: 'error',
+            // Do not send browser cookies/session data to the API.
+            credentials: 'omit',
+            cache: 'no-store',
+            referrerPolicy: 'no-referrer',
+            signal: controller.signal,
+        });
+
+        if (!response.ok) {
+            throw new RunnerError(`Engine returned HTTP ${response.status}.`);
+        }
+
+        try {
+            return await response.json();
+        } catch {
+            throw new RunnerError('Engine did not return a valid JSON response.');
+        }
+    } catch (error) {
+        if (error instanceof RunnerError) {
+            throw error;
+        }
+
+        if (error?.name === 'AbortError') {
+            throw new RunnerError('The request timed out. Check the Engine status.');
+        }
+
+        // The key, response body, and internal server details are never shown to the user.
+        throw new RunnerError(
+            'Could not reach the Engine. Check the URL, CORS, and server status.'
+        );
+    } finally {
+        clearTimeout(timeoutId);
     }
-    if (!response.ok) {
-        throw new RunnerError(`Engine returned HTTP ${response.status}.`);
-    }
-    return response.json();
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -46,32 +75,26 @@ export function createRunnerClient({ pollIntervalMs = 1500, pollTimeoutMs = 1800
         /** GET /api/discovery → { methods: [], files: [] } */
         async loadAvailableResources(apiKey) {
             const key = assertApiKey(apiKey);
-            const data = await requestJson(`${ENGINE_BASE_URL}/api/discovery`, {
+
+            return requestJson(`${ENGINE_BASE_URL}/api/discovery`, {
                 headers: { 'X-API-Secret': key },
             });
-            return data;
         },
 
-        /** GET /api/source/{method} → { cpp_code: "...", lua_code: "..." } */
+        /** GET /api/source/{method} → { cpp_code, lua_code } */
         async getSourceCode(apiKey, method, graph) {
             const key = assertApiKey(apiKey);
             const path = `/api/source/${encodeURIComponent(method)}`;
             const query = `?graph=${encodeURIComponent(graph)}`;
-            const url = `${ENGINE_BASE_URL}${path}${query}`;
 
-            const data = await requestJson(url, {
+            return requestJson(`${ENGINE_BASE_URL}${path}${query}`, {
                 headers: { 'X-API-Secret': key },
             });
-            return data;
         },
 
-        /** POST /api/execute_sequential.
-         *  Engine request: { cpp_code, lua_code, input_file }.
-         *  Engine response: { success, message, cpp_svg, lua_svg } with base64 SVGs.
-         *  Normalized here to { success, message, svgs: { cpp, lua } } with SVG text. */
+        /** POST /api/execute_sequential */
         async executeSequential(apiKey, payload) {
             const key = assertApiKey(apiKey);
-            const authHeaders = { ...JSON_HEADERS, 'X-API-Secret': key };
 
             const requestPayload = {
                 cpp_code: payload.cpp_code,
@@ -81,7 +104,7 @@ export function createRunnerClient({ pollIntervalMs = 1500, pollTimeoutMs = 1800
 
             const data = await requestJson(`${ENGINE_BASE_URL}/api/execute_sequential`, {
                 method: 'POST',
-                headers: authHeaders,
+                headers: { ...JSON_HEADERS, 'X-API-Secret': key },
                 body: JSON.stringify(requestPayload),
             });
 
@@ -95,28 +118,27 @@ export function createRunnerClient({ pollIntervalMs = 1500, pollTimeoutMs = 1800
             };
         },
 
-        /** GET /cases → { cases: [{ id, name, sourceA?, sourceB? }] } */
+        /** GET /cases → { cases: [...] } */
         async loadCases(apiKey) {
             const key = assertApiKey(apiKey);
             const data = await requestJson(`${ENGINE_BASE_URL}/cases`, {
-                headers: { 'Authorization': `Bearer ${key}` },
+                headers: { Authorization: `Bearer ${key}` },
             });
             if (!Array.isArray(data.cases)) {
-                throw new RunnerError('Expected a scripts array in the Engine response.');
+                throw new RunnerError('Expected a cases array in the Engine response.');
             }
-            // Normalize to internal field names
-            return data.cases.map(testCase => ({
+
+            return data.cases.map((testCase) => ({
                 ...testCase,
                 directSource: testCase.sourceA,
                 bridgeSource: testCase.sourceB,
             }));
         },
 
-        /** POST /jobs, then poll GET /jobs/:id until the runner reports a final status.
-         *  onStatus receives each polled job object ({ status, stage? }). */
+        /** POST /jobs, then poll GET /jobs/{id} for the result. */
         async runJob(apiKey, payload, onStatus = () => { }) {
             const key = assertApiKey(apiKey);
-            const authHeaders = { ...JSON_HEADERS, 'Authorization': `Bearer ${key}` };
+            const authHeaders = { ...JSON_HEADERS, Authorization: `Bearer ${key}` };
             const created = await requestJson(`${ENGINE_BASE_URL}/jobs`, {
                 method: 'POST',
                 headers: authHeaders,
@@ -126,18 +148,18 @@ export function createRunnerClient({ pollIntervalMs = 1500, pollTimeoutMs = 1800
                 throw new RunnerError('Engine response is missing jobId.');
             }
 
-            const jobPath = `${ENGINE_BASE_URL}/jobs/${encodeURIComponent(created.jobId)}`;
+            const jobUrl = `${ENGINE_BASE_URL}/jobs/${encodeURIComponent(created.jobId)}`;
             const deadline = Date.now() + pollTimeoutMs;
 
             while (Date.now() < deadline) {
                 await sleep(pollIntervalMs);
-                const job = await requestJson(jobPath, {
-                    headers: { 'Authorization': `Bearer ${key}` },
+                const job = await requestJson(jobUrl, {
+                    headers: { Authorization: `Bearer ${key}` },
                 });
                 onStatus(job);
                 if (job.status === 'succeeded') {
                     const result = job.result || {};
-                    // Normalize API contract (outputA/outputB) to internal names
+
                     if (!result.outputA || !result.outputB) {
                         throw new RunnerError('Completed execution did not return both graph outputs.');
                     }
@@ -148,10 +170,10 @@ export function createRunnerClient({ pollIntervalMs = 1500, pollTimeoutMs = 1800
                     };
                 }
                 if (job.status === 'failed') {
-                    throw new RunnerError(job.error || 'The script execution failed.');
+                    throw new RunnerError('The script execution failed.');
                 }
             }
-            throw new RunnerError('Timed out waiting for the Engine. Check the server status.');
+            throw new RunnerError('Timed out waiting for the Engine.');
         },
     };
 }

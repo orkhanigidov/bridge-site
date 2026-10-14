@@ -58,11 +58,10 @@ export function initDemo(root, client, config) {
         localStorage.setItem(STORAGE_KEY, els.runnerUrl.value);
     });
 
-    // If we already have a secret, hide the input field and load resources automatically
-    if (els.runnerUrl.value) {
+    // The key input stays visible until the Engine accepts the key.
+    function setSecretInputVisible(visible) {
         const container = els.runnerUrl.closest('.runner-url');
-        if (container) container.hidden = true;
-        // We will call loadResources later in the function after it is defined
+        if (container) container.hidden = !visible;
     }
 
     /* ---- static panels ---- */
@@ -237,16 +236,16 @@ export function initDemo(root, client, config) {
             }
 
             setBusy(false);
+            // The Engine accepted the key — hide the input field.
+            setSecretInputVisible(false);
             setStatus('Resources loaded from the Engine. Pick a method and a graph to see the source code.');
         } catch (error) {
             setBusy(false);
             setStatus(`Could not load resources: ${error.message}`);
-
-            // If auto-loading failed, clear the secret and show the input again
+            // Invalid or rejected key: clear the secret and keep the input visible.
             els.runnerUrl.value = '';
             localStorage.removeItem(STORAGE_KEY);
-            const container = els.runnerUrl.closest('.runner-url');
-            if (container) container.hidden = false;
+            setSecretInputVisible(true);
         }
     }
 
