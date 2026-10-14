@@ -4,7 +4,6 @@
  */
 import { CHECKS, STAGES, PARAMS } from '../config/site.js';
 import { initCodeTabs } from './codeTabs.js';
-import { createRunRecord } from './runRecord.js';
 import { showGraph } from './graphViewer.js';
 
 export function initDemo(root, client, config) {
@@ -32,11 +31,6 @@ export function initDemo(root, client, config) {
         checksList: root.querySelector('#checks-list'),
         stagesList: root.querySelector('#stages-list'),
         stagesSummary: root.querySelector('#stages-summary'),
-        record: createRunRecord({
-            toggle: root.querySelector('#record-toggle'),
-            body: root.querySelector('#record-body'),
-            hint: root.querySelector('#record-hint'),
-        }),
     };
 
     const codeTabs = initCodeTabs({
@@ -45,7 +39,7 @@ export function initDemo(root, client, config) {
         codeView: root.querySelector('#code-view'),
     });
 
-    const state = { busy: false, codeId: '', codes: new Map(), startedAt: 0, isCustomCode: false };
+    const state = { busy: false, codeId: '', codes: new Map(), isCustomCode: false };
 
     const STORAGE_KEY = 'bridge_api_secret';
     const savedSecret = localStorage.getItem(STORAGE_KEY);
@@ -275,13 +269,11 @@ export function initDemo(root, client, config) {
 
         try {
             setBusy(true);
-            state.startedAt = Date.now();
             showOutput(els.graphDirect, '');
             showOutput(els.graphBridge, '');
             els.stagesSummary.hidden = true;
             renderStages(new Set(['queued']), null);
 
-            els.record.begin('engine', payload);
             setStatus('Executing sequentially on the Engine…', 'executing');
 
             const result = await client.executeSequential(apiKey, payload);
@@ -292,10 +284,8 @@ export function initDemo(root, client, config) {
             showOutput(els.graphDirect, result.svgs?.cpp || '');
             showOutput(els.graphBridge, result.svgs?.lua || '');
             const waitedS = (Date.now() - state.startedAt) / 1000;
-            els.record.finish('custom script', 'succeeded', waitedS);
             setStatus('Completed. Showing graph data returned by the Engine.', 'succeeded');
         } catch (error) {
-            els.record.fail(error.message);
             renderStages(new Set(), 'running');
             els.stagesSummary.hidden = false;
             els.stagesSummary.textContent = 'failed';
