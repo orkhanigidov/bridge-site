@@ -5,6 +5,7 @@
 import { CHECKS, STAGES, PARAMS } from '../config/site.js';
 import { initCodeTabs } from './codeTabs.js';
 import { createRunRecord } from './runRecord.js';
+import { showGraph } from './graphViewer.js';
 
 export function initDemo(root, client, config) {
     const els = {
@@ -145,16 +146,7 @@ export function initDemo(root, client, config) {
     /* ---- output panels ---- */
 
     function showOutput(panel, svgText) {
-        const svg = String(svgText || '').trim();
-        panel.textContent = '';
-        if (svg.includes('<svg')) {
-            panel.innerHTML = svg; // ready SVG from the Engine
-        } else {
-            const note = document.createElement('p');
-            note.className = 'graph-empty';
-            note.textContent = 'No graph output for this side.';
-            panel.append(note);
-        }
+        showGraph(panel, svgText);
     }
 
     /* ---- case loading ---- */

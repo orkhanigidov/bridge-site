@@ -22,13 +22,6 @@
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
     --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-    /* Dark pane tokens */
-    --pane-dark-bg: var(--ink, #1c1917);
-    --pane-dark-border: var(--ink, #1c1917);
-    --pane-dark-edge: #57534e;
-    --pane-dark-node: #2dd4bf;
-    --pane-dark-text: var(--line-strong, #a8a29e);
-    --pane-dark-head-border: #3f3c39;
 }
 
 /* ============ reduced motion ============ */
@@ -845,42 +838,6 @@ summary:focus-visible {
 }
 
 /* dark pane */
-.pane--dark .pane-head {
-    border-bottom-color: var(--pane-dark-head-border, #3f3c39);
-}
-
-.pane--dark .pane-head h3 {
-    color: var(--paper, #fafaf9);
-}
-
-.pane--dark .pane-head .label {
-    color: var(--pane-dark-text, #a8a29e);
-}
-
-.pane--dark .pane-body {
-    background: var(--pane-dark-bg, #1c1917);
-    border-color: var(--pane-dark-border, #1c1917);
-}
-
-.pane--dark .graph-edge {
-    stroke: var(--pane-dark-edge, #57534e);
-}
-
-.pane--dark .graph-node {
-    fill: var(--pane-dark-node, #2dd4bf);
-    stroke: var(--pane-dark-bg, #1c1917);
-}
-
-.pane--dark .graph-meta {
-    color: var(--pane-dark-text, #a8a29e);
-    border-top-color: var(--pane-dark-head-border, #3f3c39);
-}
-
-.pane--dark .graph-empty {
-    border-color: var(--pane-dark-edge, #57534e);
-    color: var(--pane-dark-text, #a8a29e);
-}
-
 /* ============ panels: checks + stages ============ */
 .panel-grid {
     margin-top: 2.25rem;
@@ -1762,4 +1719,50 @@ summary:focus-visible {
         font-size: 12pt;
         line-height: 1.5;
     }
+}
+
+.side-tag {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.55rem;
+    border: 1px solid var(--line-strong);
+    color: var(--ink-soft);
+    white-space: nowrap;
+}
+
+.side-tag--a { border-color: var(--ink); color: var(--ink); }
+.side-tag--b {
+    border-color: var(--accent);
+    color: var(--accent-deep);
+    background: var(--accent-soft);
+}
+
+/* SVG viewer affordances: pan/zoom cursor states and the floating toolbar. */
+.pane-body { position: relative; }
+.pane-body svg { touch-action: none; cursor: grab; }
+.pane-body svg.is-panning { cursor: grabbing; }
+
+.graph-toolbar {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    gap: 0.3rem;
+}
+
+.graph-btn {
+    border: 1px solid var(--line-strong);
+    background: var(--panel);
+    font: 500 0.7rem var(--font-mono);
+    color: var(--ink-soft);
+    padding: 0.2rem 0.5rem;
+    cursor: pointer;
+}
+
+.graph-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent-deep);
+    background: var(--band);
 }
