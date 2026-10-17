@@ -198,7 +198,7 @@
                             <div id="graph3d-stage" class="graph3d-stage" aria-label="GraphML 3D visualization"
                                 aria-describedby="graph3d-meta graph3d-help"></div>
                             <p class="graph3d-help" id="graph3d-help">Drag to orbit · right-drag to pan · scroll to zoom ·
-                                click a node to focus.</p>
+                                use Labels to show or hide node names · click a node to focus.</p>
                         </div>
                     </section>
                 </div>
@@ -585,8 +585,20 @@
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/3d-force-graph@1.80.1/dist/3d-force-graph.min.js"></script>
-    <script type="module" src="js/main.js"></script>
+    <script type="module">
+        try {
+            const [THREE, { default: ForceGraph3D }] = await Promise.all([
+                import('https://cdn.jsdelivr.net/npm/three@0.186.1/+esm'),
+                import('https://cdn.jsdelivr.net/npm/3d-force-graph@1.80.1/+esm'),
+            ]);
+            window.THREE = THREE;
+            window.ForceGraph3D = ForceGraph3D;
+        } catch (error) {
+            document.querySelector('#graph3d-meta').textContent =
+                `Could not load the 3D renderer: ${error.message}`;
+        }
+        await import('./js/main.js');
+    </script>
 </body>
 
 </html>

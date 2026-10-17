@@ -1,9 +1,10 @@
 import { parseGraphml } from './graphml.js';
 
 const ACCENT = '#0f766e';
-const LINK = '#a8a29e';
+const LINK = '#57534e';
 const NODE_PALETTE = ['#0f766e', '#2563eb', '#b45309', '#7c3aed', '#be123c', '#0f766e'];
 const INITIAL_MESSAGE = 'Run the Engine to explore its GraphML result.';
+const THREE = window.THREE;
 
 function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, (character) => ({
@@ -15,7 +16,106 @@ function escapeHtml(value) {
     })[character]);
 }
 
-function createControls(stage, graph, metaEl, hasCoordinates) {
+function getNodeColor(node, focusedNode = null, hasSearchQuery = false, searchMatches = []) {
+    if (focusedNode && node.id === focusedNode.id) return '#d97706';
+    if (hasSearchQuery && !searchMatches.includes(node.id)) return '#cbd5e1';
+    if (Number.isFinite(node.nodetype)) {
+        const type = Math.abs(Math.trunc(node.nodetype)) % (NODE_PALETTE.length - 1);
+        return NODE_PALETTE[type];
+    }
+    return ACCENT;
+}
+
+function getNodeValue(node) {
+    return Math.max(1, Math.min(10, 2 + (node.degree || 0) * 0.35));
+}
+
+function getNodeRadius(node) {
+    return 4 * Math.cbrt(getNodeValue(node));
+}
+
+function getLinkVector({ source, target }) {
+    const dx = target.x - source.x;
+    const dy = target.y - source.y;
+    const dz = target.z - source.z;
+    return { dx, dy, dz, length: Math.hypot(dx, dy, dz) };
+}
+
+function getArrowLength(link) {
+    if (!link.directed) return 0;
+    return Math.min(14, Math.max(6, getLinkVector(link).length * 0.24));
+}
+
+function getArrowPosition(link) {
+    if (!link.directed) return 1;
+    const { source, target } = link;
+    const { dx, dy, dz, length } = getLinkVector(link);
+    if (!length) return 1;
+
+    const direction = Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz)) / length;
+    const targetFaceDistance = getNodeRadius(target) / direction;
+    const exposedLength = length - getNodeRadius(source) - getNodeRadius(target) - getArrowLength(link);
+    if (exposedLength <= 0) return 1;
+
+    return Math.max(0, Math.min(1,
+        (length - targetFaceDistance - getNodeRadius(source) - getArrowLength(link)) / exposedLength));
+}
+
+function getNodeDetails(node) {
+    const degree = node.degree || 0;
+    const type = Number.isFinite(node.nodetype) ? ` · type ${node.nodetype}` : '';
+    return `${node.id} · ${degree} ${degree === 1 ? 'connection' : 'connections'}${type}`;
+}
+
+function getMatchCount(count) {
+    return `${count} matching ${count === 1 ? 'node' : 'nodes'}`;
+}
+
+function createNodeLabel(node, size) {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Could not create a canvas for node labels.');
+
+    const fontSize = 48;
+    context.font = `600 ${fontSize}px sans-serif`;
+    const text = String(node.id);
+    const textWidth = Math.ceil(context.measureText(text).width);
+    canvas.width = Math.min(1024, Math.max(128, textWidth + 32));
+    canvas.height = 72;
+    context.font = `600 ${fontSize}px sans-serif`;
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.lineJoin = 'round';
+    context.lineWidth = 9;
+    context.strokeStyle = 'rgba(255, 255, 255, 0.96)';
+    context.strokeText(text, canvas.width / 2, canvas.height / 2);
+    context.fillStyle = '#1f2937';
+    context.fillText(text, canvas.width / 2, canvas.height / 2);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const material = new THREE.SpriteMaterial({
+        map: texture,
+        transparent: true,
+        depthWrite: false,
+    });
+    const sprite = new THREE.Sprite(material);
+    const labelHeight = size * 0.85;
+    const labelWidth = labelHeight * canvas.width / canvas.height;
+    sprite.scale.set(labelWidth, labelHeight, 1);
+    const direction = node.labelDirection || { x: 1, y: 0 };
+    if (Math.abs(direction.x) >= Math.abs(direction.y)) {
+        const side = direction.x < 0 ? -1 : 1;
+        sprite.position.x = side * (size / 2 + labelWidth / 2 + size * 0.15);
+    } else {
+        const side = direction.y < 0 ? -1 : 1;
+        sprite.position.y = side * (size / 2 + labelHeight / 2 + size * 0.15);
+    }
+    sprite.renderOrder = 1;
+    return { sprite, texture, material };
+}
+
+function createControls(stage, graph, metaEl, fitView) {
     const toolbar = document.createElement('div');
     toolbar.className = 'graph3d-toolbar';
     toolbar.setAttribute('role', 'toolbar');
@@ -47,21 +147,22 @@ function createControls(stage, graph, metaEl, hasCoordinates) {
     details.setAttribute('aria-live', 'polite');
 
     let nodes = [];
-    let links = [];
-    let coordinateLayout = hasCoordinates;
     let searchMatches = [];
     let hasSearchQuery = false;
-    let showLabels = true;
+    let showLabels = false;
     let showEdges = true;
     let focusedNode = null;
-    const nodeColor = (node) => {
-        if (focusedNode && node.id === focusedNode.id) return '#d97706';
-        if (hasSearchQuery && !searchMatches.includes(node.id)) return '#cbd5e1';
-        if (Number.isFinite(node.nodetype)) {
-            const type = Math.abs(Math.trunc(node.nodetype)) % (NODE_PALETTE.length - 1);
-            return NODE_PALETTE[type];
+    const nodeColor = (node) => getNodeColor(node, focusedNode, hasSearchQuery, searchMatches);
+    const updateNodeColors = () => {
+        for (const node of nodes) {
+            node.graphBoxMaterial?.color.set(nodeColor(node));
         }
-        return ACCENT;
+    };
+    const updateNodeLabels = () => {
+        graph.nodeLabel(showLabels ? (node) => escapeHtml(node.id) : () => '');
+        for (const node of nodes) {
+            if (node.graphLabelSprite) node.graphLabelSprite.visible = showLabels;
+        }
     };
 
     const updateSearch = () => {
@@ -71,9 +172,8 @@ function createControls(stage, graph, metaEl, hasCoordinates) {
             ? nodes.filter((node) => node.id.toLocaleLowerCase().includes(query)).map((node) => node.id)
             : [];
         graph.nodeColor(nodeColor);
-        details.textContent = query
-            ? `${searchMatches.length} matching ${searchMatches.length === 1 ? 'node' : 'nodes'}`
-            : '';
+        updateNodeColors();
+        details.textContent = query ? getMatchCount(searchMatches.length) : '';
     };
 
     const focusNode = (node) => {
@@ -87,9 +187,7 @@ function createControls(stage, graph, metaEl, hasCoordinates) {
             { x, y, z },
             800,
         );
-        const type = Number.isFinite(node.nodetype) ? ` · type ${node.nodetype}` : '';
-        const degree = node.degree || 0;
-        details.textContent = `${node.id} · ${degree} ${degree === 1 ? 'connection' : 'connections'}${type}`;
+        details.textContent = getNodeDetails(node);
     };
 
     search.addEventListener('input', updateSearch);
@@ -125,51 +223,26 @@ function createControls(stage, graph, metaEl, hasCoordinates) {
     addButton({
         label: 'Fit',
         title: 'Fit all nodes in view',
-        run: () => graph.zoomToFit(500, 48),
+        run: () => fitView(false),
     });
-    if (hasCoordinates) {
-        const layoutButton = addButton({
-            label: 'Coordinates',
-            title: 'Switch to force-directed layout',
-            pressed: true,
-            run: (event) => {
-                coordinateLayout = !coordinateLayout;
-                for (const node of nodes) {
-                    if (coordinateLayout) {
-                        node.x = node.graphmlX;
-                        node.y = node.graphmlY;
-                        node.z = node.graphmlZ;
-                        node.fx = node.graphmlX;
-                        node.fy = node.graphmlY;
-                        node.fz = node.graphmlZ;
-                    } else {
-                        delete node.fx;
-                        delete node.fy;
-                        delete node.fz;
-                    }
-                }
-                event.currentTarget.textContent = coordinateLayout ? 'Coordinates' : 'Force';
-                event.currentTarget.title = coordinateLayout
-                    ? 'Switch to force-directed layout'
-                    : 'Restore original GraphML coordinates';
-                event.currentTarget.setAttribute('aria-label', event.currentTarget.title);
-                event.currentTarget.setAttribute('aria-pressed', String(coordinateLayout));
-                focusedNode = null;
-                graph.graphData({ nodes, links });
-                graph.d3ReheatSimulation();
-                graph.zoomToFit(650, 48);
-            },
-        });
-        layoutButton.classList.add('graph3d-toggle');
-    }
+    addButton({
+        label: 'Fix',
+        title: 'Center, orient, and fit the graph',
+        run: () => {
+            search.value = '';
+            focusedNode = null;
+            updateSearch();
+            fitView(true);
+        },
+    });
     const labelsButton = addButton({
         label: 'Labels',
-        title: 'Toggle node hover labels',
+        title: 'Show or hide node names',
         pressed: showLabels,
         run: (event) => {
             showLabels = !showLabels;
             event.currentTarget.setAttribute('aria-pressed', String(showLabels));
-            graph.nodeLabel(showLabels ? (node) => escapeHtml(node.id) : () => '');
+            updateNodeLabels();
         },
     });
     labelsButton.classList.add('graph3d-toggle');
@@ -202,23 +275,20 @@ function createControls(stage, graph, metaEl, hasCoordinates) {
     stage.append(toolbar, details);
 
     return {
-        setNodes(nextNodes, nextLinks) {
+        setNodes(nextNodes) {
             nodes = nextNodes;
-            links = nextLinks;
             search.value = '';
             focusedNode = null;
+            updateNodeLabels();
             updateSearch();
         },
+        labelsVisible: () => showLabels,
         setHoveredNode(node) {
             if (!node) {
-                details.textContent = search.value.trim()
-                    ? `${searchMatches.length} matching ${searchMatches.length === 1 ? 'node' : 'nodes'}`
-                    : '';
+                details.textContent = search.value.trim() ? getMatchCount(searchMatches.length) : '';
                 return;
             }
-            const type = Number.isFinite(node.nodetype) ? ` · type ${node.nodetype}` : '';
-            const degree = node.degree || 0;
-            details.textContent = `${node.id} · ${degree} ${degree === 1 ? 'connection' : 'connections'}${type}`;
+            details.textContent = getNodeDetails(node);
         },
         focusNode,
         dispose() {
@@ -229,12 +299,7 @@ function createControls(stage, graph, metaEl, hasCoordinates) {
 }
 
 function prepareGraphData(parsed) {
-    const nodes = parsed.nodes.map((node) => ({
-        ...node,
-        graphmlX: node.x,
-        graphmlY: node.y,
-        graphmlZ: node.z,
-    }));
+    const nodes = parsed.nodes.map((node) => ({ ...node }));
     const byId = new Map(nodes.map((node) => [node.id, node]));
     const degree = new Map(nodes.map((node) => [node.id, 0]));
     for (const link of parsed.links) {
@@ -247,8 +312,8 @@ function prepareGraphData(parsed) {
         Number.isFinite(node.x) && Number.isFinite(node.y));
     if (hasCoordinates) {
         for (const node of nodes) {
+            node.y = -node.y;
             node.z = Number.isFinite(node.z) ? node.z : 0;
-            node.graphmlZ = node.z;
             node.fx = node.x;
             node.fy = node.y;
             node.fz = node.z;
@@ -265,14 +330,91 @@ function prepareGraphData(parsed) {
         });
     }
 
-    const links = parsed.links
-        .filter((link) => byId.has(link.source) && byId.has(link.target))
-        .map((link) => ({
-            ...link,
-            source: byId.get(link.source),
-            target: byId.get(link.target),
-        }));
-    return { nodes, links, hasCoordinates };
+    const links = [];
+    const usedIds = new Set(byId.keys());
+    let bendId = 0;
+    for (const link of parsed.links) {
+        const source = byId.get(link.source);
+        const target = byId.get(link.target);
+        if (!source || !target) continue;
+
+        const bends = hasCoordinates ? (link.bends || []) : [];
+        const route = [source];
+        bends.forEach((bend, index) => {
+            const progress = (index + 1) / (bends.length + 1);
+            const z = Number.isFinite(bend.z)
+                ? bend.z
+                : source.z + (target.z - source.z) * progress;
+            let id;
+            do {
+                id = `__graphml_bend_${bendId++}`;
+            } while (usedIds.has(id));
+            usedIds.add(id);
+            const bendNode = {
+                id,
+                isBend: true,
+                x: bend.x,
+                y: hasCoordinates ? -bend.y : bend.y,
+                z,
+            };
+            if (hasCoordinates) {
+                bendNode.fx = bendNode.x;
+                bendNode.fy = bendNode.y;
+                bendNode.fz = bendNode.z;
+            }
+            nodes.push(bendNode);
+            route.push(bendNode);
+        });
+        route.push(target);
+
+        for (let index = 1; index < route.length; index++) {
+            links.push({
+                ...link,
+                source: route[index - 1],
+                target: route[index],
+                graphmlSource: link.source,
+                graphmlTarget: link.target,
+                directed: link.directed && index === route.length - 1,
+            });
+        }
+    }
+    const labelDirections = new Map();
+    for (const link of links) {
+        if (link.target.isBend) continue;
+        const direction = labelDirections.get(link.target.id) || { x: 0, y: 0 };
+        direction.x += link.target.x - link.source.x;
+        direction.y += link.target.y - link.source.y;
+        labelDirections.set(link.target.id, direction);
+    }
+    for (const node of nodes) {
+        const direction = labelDirections.get(node.id);
+        if (!direction || (direction.x === 0 && direction.y === 0)) continue;
+        const length = Math.hypot(direction.x, direction.y);
+        node.labelDirection = {
+            x: -direction.y / length,
+            y: direction.x / length,
+        };
+    }
+    if (hasCoordinates) {
+        const center = {};
+        for (const axis of ['x', 'y', 'z']) {
+            const values = nodes.map((node) => node[axis]);
+            center[axis] = (Math.min(...values) + Math.max(...values)) / 2;
+        }
+        for (const node of nodes) {
+            for (const axis of ['x', 'y', 'z']) {
+                node[axis] -= center[axis];
+                node[`f${axis}`] = node[axis];
+            }
+        }
+    }
+    return {
+        nodes,
+        links,
+        nodeCount: parsed.nodes.length,
+        edgeCount: parsed.links.length,
+        hasCoordinates,
+    };
 }
 
 export function initGraph3d({ container, meta }) {
@@ -280,52 +422,117 @@ export function initGraph3d({ container, meta }) {
     const metaEl = document.querySelector(meta);
     if (!stage || !metaEl) {
         console.warn('[graph3d] pane-B elements not found — check index.html.');
-        return { render() { }, clear() { } };
+        return { render() {}, clear() {} };
     }
 
     let graph = null;
     let controls = null;
     let resizeObserver = null;
+    let fitPending = false;
+    let fitOnEngineStop = false;
+
+    function fitGraph(resetOrientation = true) {
+        if (!graph || !stage.clientWidth || !stage.clientHeight) return false;
+        const { nodes } = graph.graphData();
+        if (!nodes.length) return false;
+
+        if (resetOrientation) {
+            const bounds = ['x', 'y', 'z'].map((axis) => {
+                const values = nodes.map((node) => Number.isFinite(node[axis]) ? node[axis] : 0);
+                return {
+                    min: Math.min(...values),
+                    max: Math.max(...values),
+                };
+            });
+            const center = bounds.map(({ min, max }) => (min + max) / 2);
+            const radius = Math.max(1, Math.hypot(
+                ...bounds.map(({ min, max }) => (max - min) / 2),
+            ));
+            graph.cameraPosition({
+                x: center[0],
+                y: center[1],
+                z: center[2] + radius * 3,
+            }, {
+                x: center[0],
+                y: center[1],
+                z: center[2],
+            }, 0);
+            graph.zoomToFit(0, 56);
+            return true;
+        }
+        graph.zoomToFit(500, 56);
+        return true;
+    }
 
     function ensureGraph() {
         if (graph) return graph;
         if (typeof window.ForceGraph3D !== 'function') {
             throw new Error('The 3D graph library did not load. Check the network connection and refresh.');
         }
+        if (!THREE) {
+            throw new Error('Three.js did not load. Check the network connection and refresh.');
+        }
 
-        graph = new window.ForceGraph3D(stage)
+        graph = new window.ForceGraph3D(stage, { controlType: 'orbit' })
             .width(stage.clientWidth || 640)
             .height(stage.clientHeight || 420)
             .backgroundColor('rgba(255,255,255,0)')
             .showNavInfo(false)
-            .enableNodeDrag(true)
+            .enableNodeDrag(false)
             .nodeId('id')
             .nodeLabel((node) => escapeHtml(node.id))
+            .nodeVisibility((node) => !node.isBend)
+            .nodeThreeObject((node) => {
+                if (node.isBend) return undefined;
+                const size = 2 * getNodeRadius(node);
+                const material = new THREE.MeshStandardMaterial({
+                    color: getNodeColor(node),
+                    roughness: 0.55,
+                    metalness: 0.05,
+                });
+                const geometry = new THREE.BoxGeometry(size, size, size);
+                const { sprite, texture, material: labelMaterial } = createNodeLabel(node, size);
+                const object = new THREE.Group();
+                object.add(new THREE.Mesh(geometry, material), sprite);
+                sprite.visible = controls?.labelsVisible() ?? false;
+                node.graphBoxMaterial = material;
+                node.graphBoxGeometry = geometry;
+                node.graphLabelSprite = sprite;
+                node.graphLabelTexture = texture;
+                node.graphLabelMaterial = labelMaterial;
+                return object;
+            })
+            .nodeThreeObjectExtend(false)
             .nodeColor(() => ACCENT)
-            .nodeVal((node) => Math.max(1, Math.min(10, 2 + (node.degree || 0) * 0.35)))
+            .nodeVal(getNodeValue)
             .nodeRelSize(4)
             .linkColor(() => LINK)
             .linkLabel((link) => {
-                const source = typeof link.source === 'object' ? link.source.id : link.source;
-                const target = typeof link.target === 'object' ? link.target.id : link.target;
+                const source = link.graphmlSource ||
+                    (typeof link.source === 'object' ? link.source.id : link.source);
+                const target = link.graphmlTarget ||
+                    (typeof link.target === 'object' ? link.target.id : link.target);
                 return `${escapeHtml(source)} → ${escapeHtml(target)}` +
                     `${link.type ? ` · ${escapeHtml(link.type)}` : ''}`;
             })
-            .linkOpacity(0.48)
-            .linkWidth(0.8)
-            .linkDirectionalArrowLength((link) => link.directed ? 3 : 0)
+            .linkOpacity(0.82)
+            .linkWidth(1.2)
+            .linkDirectionalArrowLength(getArrowLength)
             .linkDirectionalArrowColor(() => LINK)
-            .linkDirectionalArrowRelPos(1)
-            .linkCurvature(0.08)
+            .linkDirectionalArrowRelPos(getArrowPosition)
+            .linkCurvature(0)
             .d3VelocityDecay(0.32)
             .warmupTicks(40)
             .cooldownTicks(120);
         graph.onNodeClick((node) => controls?.focusNode(node));
         graph.onNodeHover((node) => controls?.setHoveredNode(node));
-        graph.onEngineStop(() => graph.zoomToFit(500, 48));
+        graph.onEngineStop(() => {
+            if (fitOnEngineStop && fitGraph(true)) fitOnEngineStop = false;
+        });
         resizeObserver = new ResizeObserver(() => {
             if (stage.clientWidth && stage.clientHeight) {
                 graph.width(stage.clientWidth).height(stage.clientHeight);
+                if (fitPending && fitGraph(true)) fitPending = false;
             }
         });
         resizeObserver.observe(stage);
@@ -335,7 +542,17 @@ export function initGraph3d({ container, meta }) {
     function clear(message = INITIAL_MESSAGE) {
         controls?.dispose();
         controls = null;
-        if (graph) graph.graphData({ nodes: [], links: [] });
+        fitPending = false;
+        fitOnEngineStop = false;
+        if (graph) {
+            for (const node of graph.graphData().nodes) {
+                node.graphBoxGeometry?.dispose();
+                node.graphBoxMaterial?.dispose();
+                node.graphLabelTexture?.dispose();
+                node.graphLabelMaterial?.dispose();
+            }
+            graph.graphData({ nodes: [], links: [] });
+        }
         stage.classList.remove('has-node-hover');
         metaEl.textContent = message;
     }
@@ -355,22 +572,27 @@ export function initGraph3d({ container, meta }) {
                 const parsed = parseGraphml(graphmlText);
                 const data = prepareGraphData(parsed);
                 const renderer = ensureGraph();
-                controls = createControls(stage, renderer, metaEl, data.hasCoordinates);
-                controls.setNodes(data.nodes, data.links);
+                controls = createControls(stage, renderer, metaEl, fitGraph);
+                controls.setNodes(data.nodes);
+                renderer.enableNodeDrag(!data.hasCoordinates);
+                fitPending = true;
+                fitOnEngineStop = !data.hasCoordinates;
                 renderer
-                    .nodeColor((node) => node.nodetype == null
-                        ? ACCENT
-                        : NODE_PALETTE[Math.abs(Math.trunc(node.nodetype)) % (NODE_PALETTE.length - 1)])
+                    .nodeColor((node) => getNodeColor(node))
                     .graphData(data);
-                const nodeCount = `${data.nodes.length} ${data.nodes.length === 1 ? 'node' : 'nodes'}`;
-                const edgeCount = `${data.links.length} ${data.links.length === 1 ? 'edge' : 'edges'}`;
+                requestAnimationFrame(() => requestAnimationFrame(() => {
+                    if (fitPending && fitGraph(true)) fitPending = false;
+                }));
+                const nodeCount = `${data.nodeCount} ${data.nodeCount === 1 ? 'node' : 'nodes'}`;
+                const edgeCount = `${data.edgeCount} ${data.edgeCount === 1 ? 'edge' : 'edges'}`;
                 metaEl.textContent = `${name} · ${nodeCount} · ${edgeCount} · ` +
                     (data.hasCoordinates
                         ? 'GraphML coordinates preserved · 3D navigation enabled'
                         : '3D force-directed layout');
             } catch (error) {
                 metaEl.textContent = error.message.includes('WebGLRenderer')
-                    ? `Could not render ${name}: WebGL is unavailable in this browser or device. ${error.message}`
+                    ? `Could not render ${name}: WebGL is unavailable in this browser or device. ` +
+                        error.message
                     : `Could not render ${name}: ${error.message}`;
             }
         },
