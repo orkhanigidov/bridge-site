@@ -71,6 +71,16 @@ function getMatchCount(count) {
     return `${count} matching ${count === 1 ? 'node' : 'nodes'}`;
 }
 
+function getGraphBounds(nodes) {
+    return ['x', 'y', 'z'].map((axis) => {
+        const values = nodes.map((node) => Number.isFinite(node[axis]) ? node[axis] : 0);
+        return {
+            min: Math.min(...values),
+            max: Math.max(...values),
+        };
+    });
+}
+
 function createNodeLabel(node, size) {
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
@@ -181,7 +191,15 @@ function createControls(stage, graph, metaEl, fitView) {
         focusedNode = node;
         updateSearch();
         const { x = 0, y = 0, z = 0 } = node;
-        const distance = Math.max(60, Math.hypot(x, y, z) * 0.35);
+        const graphNodes = graph.graphData().nodes.filter((graphNode) => !graphNode.isBend);
+        const distance = Math.max(
+            getNodeRadius(node) * 5,
+            ...graphNodes.map((graphNode) => Math.hypot(
+                graphNode.x - x,
+                graphNode.y - y,
+                graphNode.z - z,
+            ) * 0.2),
+        );
         graph.cameraPosition(
             { x: x + distance, y: y + distance * 0.65, z: z + distance },
             { x, y, z },
@@ -222,12 +240,12 @@ function createControls(stage, graph, metaEl, fitView) {
     });
     addButton({
         label: 'Fit',
-        title: 'Fit all nodes in view',
+        title: 'Fit the graph without changing its view direction',
         run: () => fitView(false),
     });
     addButton({
         label: 'Fix',
-        title: 'Center, orient, and fit the graph',
+        title: 'Reset to a centered, front-facing view',
         run: () => {
             search.value = '';
             focusedNode = null;
@@ -435,19 +453,20 @@ export function initGraph3d({ container, meta }) {
         if (!graph || !stage.clientWidth || !stage.clientHeight) return false;
         const { nodes } = graph.graphData();
         if (!nodes.length) return false;
+        const bounds = getGraphBounds(nodes);
+        const center = bounds.map(({ min, max }) => (min + max) / 2);
+        const radius = Math.max(1, Math.hypot(
+            ...bounds.map(({ min, max }) => (max - min) / 2),
+        ));
+        const navigation = graph.controls();
+        navigation.minDistance = Math.max(1, radius * 0.05);
+        navigation.maxDistance = Math.max(100, radius * 100);
+        navigation.enableDamping = true;
+        navigation.dampingFactor = 0.08;
+        navigation.rotateSpeed = 0.7;
+        navigation.zoomSpeed = 0.8;
 
         if (resetOrientation) {
-            const bounds = ['x', 'y', 'z'].map((axis) => {
-                const values = nodes.map((node) => Number.isFinite(node[axis]) ? node[axis] : 0);
-                return {
-                    min: Math.min(...values),
-                    max: Math.max(...values),
-                };
-            });
-            const center = bounds.map(({ min, max }) => (min + max) / 2);
-            const radius = Math.max(1, Math.hypot(
-                ...bounds.map(({ min, max }) => (max - min) / 2),
-            ));
             graph.cameraPosition({
                 x: center[0],
                 y: center[1],
