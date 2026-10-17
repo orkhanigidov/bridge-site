@@ -245,7 +245,7 @@ function createControls(stage, graph, metaEl, fitView) {
     });
     addButton({
         label: 'Fix',
-        title: 'Reset to a centered, front-facing view',
+        title: 'Reset rotation, center, and fit the graph',
         run: () => {
             search.value = '';
             focusedNode = null;
@@ -467,16 +467,28 @@ export function initGraph3d({ container, meta }) {
         navigation.zoomSpeed = 0.8;
 
         if (resetOrientation) {
+            const camera = graph.camera();
+            const verticalHalfFov = ((camera.fov || 60) * Math.PI) / 360;
+            const horizontalHalfFov = Math.atan(
+                Math.tan(verticalHalfFov) * stage.clientWidth / stage.clientHeight,
+            );
+            const fitDistance = (radius / Math.sin(Math.min(verticalHalfFov, horizontalHalfFov))) * 1.2;
+            const wasDampingEnabled = navigation.enableDamping;
+            navigation.enableDamping = false;
+            navigation.update();
+            camera.up.set(0, 1, 0);
             graph.cameraPosition({
                 x: center[0],
                 y: center[1],
-                z: center[2] + radius * 3,
+                z: center[2] + fitDistance,
             }, {
                 x: center[0],
                 y: center[1],
                 z: center[2],
             }, 0);
-            graph.zoomToFit(0, 56);
+            navigation.update();
+            navigation.saveState();
+            navigation.enableDamping = wasDampingEnabled;
             return true;
         }
         graph.zoomToFit(500, 56);
