@@ -49,7 +49,7 @@ export function initCodeTabs({ tabDirect, tabBridge, codeView }) {
             else if (e.key === 'Home') newIndex = 0;
             else if (e.key === 'End') newIndex = tabs.length - 1;
             else return;
-            
+
             e.preventDefault();
             tabs[newIndex].focus();
             setActive(tabs[newIndex] === tabDirect ? 'direct' : 'bridge');
@@ -59,11 +59,6 @@ export function initCodeTabs({ tabDirect, tabBridge, codeView }) {
     return {
         setSource(path, text) {
             if (path in sources) sources[path] = String(text || '');
-            render();
-        },
-        clear() {
-            sources.direct = '';
-            sources.bridge = '';
             render();
         },
     };

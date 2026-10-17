@@ -75,7 +75,8 @@
                         <p class="eyebrow">Live comparison</p>
                         <h2>One case, two paths, side by side</h2>
                         <p class="lead">Connect the Engine and pick a predefined C++/Lua pair, or paste your own.
-                            The graphs below appear only after the Engine returns graph data.</p>
+                            Pane A fills only after the Engine returns graph data; pane B shows the parsed GraphML
+                            using its original 2D coordinates.</p>
                     </div>
                     <div class="runner-url">
                         <label class="label" for="runner-url">API secret key</label>
@@ -173,14 +174,29 @@
                             <h3>Direct OGDF · 2D reference</h3>
                             <span class="side-tag side-tag--a">A · C++ direct</span>
                         </header>
-                        <div class="pane-body" id="graph-direct"></div>
+                        <div class="pane-body">
+                            <div class="view-switch" id="svg-switch" hidden role="group" aria-label="Path to display">
+                                <button type="button" data-view="cpp" class="is-active">C++ direct</button>
+                                <button type="button" data-view="lua">Lua · via BRIDGE</button>
+                            </div>
+                            <div id="graph-direct"></div>
+                        </div>
                     </section>
                     <section class="pane pane--b">
                         <header class="pane-head">
                             <h3>OGDF via BRIDGE → GAV-VR</h3>
                             <span class="side-tag side-tag--b">B · via BRIDGE</span>
                         </header>
-                        <div class="pane-body" id="graph-bridge"></div>
+                        <div class="pane-body pane-body--3d">
+                            <div class="view-switch" id="graphml-switch" hidden role="group"
+                                aria-label="GraphML source to render">
+                                <button type="button" data-view="lua" class="is-active">Lua · via BRIDGE</button>
+                                <button type="button" data-view="cpp">C++ direct</button>
+                            </div>
+                            <p class="graph3d-meta" id="graph3d-meta">Run the Engine — drag to move; 3D toggles orbit.
+                                Use +/− to zoom, Fit to reset, ⛶ for fullscreen.</p>
+                            <div id="graph3d-stage" class="graph3d-stage" aria-label="GraphML visualization"></div>
+                        </div>
                     </section>
                 </div>
 
@@ -259,9 +275,11 @@
                 <details class="about">
                     <summary>About this demo</summary>
                     <p>
-                        Both panes render only the graph data the Engine returns; until the Engine is connected
-                        they stay empty — that is the correct state, and the page ships no sample graphs. Every
-                        output a reviewer sees was therefore produced by the published pipeline: the same Lua
+                        Pane A renders only the SVG the Engine returns; until the Engine is connected it stays empty —
+                        that is the correct state, and the page ships no sample graphs. Pane B parses GraphML files
+                        directly in the browser and shows their original x/y/z coordinate layout in a 3D
+                        projection — it works without the Engine. Every output a reviewer sees was therefore
+                        produced by the published pipeline: the same Lua
                         script executed through the BRIDGE Engine in Native (P/Invoke) or Network (REST) mode,
                         with node coordinates and edges returned to this page unmodified. The Engine enforces a
                         whitelist sandbox and a fresh Lua state per execution.
@@ -564,6 +582,7 @@
         </div>
     </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/3d-force-graph@1.80.1/dist/3d-force-graph.min.js"></script>
     <script type="module" src="js/main.js"></script>
 </body>
 

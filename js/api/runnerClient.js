@@ -68,9 +68,7 @@ async function requestJson(url, options = {}) {
     }
 }
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-export function createRunnerClient({ pollIntervalMs = 1500, pollTimeoutMs = 180000 } = {}) {
+export function createRunnerClient() {
     return {
         /** GET /api/discovery → { methods: [], files: [] } */
         async loadAvailableResources(apiKey) {
@@ -115,65 +113,11 @@ export function createRunnerClient({ pollIntervalMs = 1500, pollTimeoutMs = 1800
                     cpp: data.cpp_svg || '',
                     lua: data.lua_svg || '',
                 },
+                graphml: {
+                    cpp: data.cpp_graphml || '',
+                    lua: data.lua_graphml || data.graphml || data.graphml_content || '',
+                },
             };
-        },
-
-        /** GET /cases → { cases: [...] } */
-        async loadCases(apiKey) {
-            const key = assertApiKey(apiKey);
-            const data = await requestJson(`${ENGINE_BASE_URL}/cases`, {
-                headers: { Authorization: `Bearer ${key}` },
-            });
-            if (!Array.isArray(data.cases)) {
-                throw new RunnerError('Expected a cases array in the Engine response.');
-            }
-
-            return data.cases.map((testCase) => ({
-                ...testCase,
-                directSource: testCase.sourceA,
-                bridgeSource: testCase.sourceB,
-            }));
-        },
-
-        /** POST /jobs, then poll GET /jobs/{id} for the result. */
-        async runJob(apiKey, payload, onStatus = () => { }) {
-            const key = assertApiKey(apiKey);
-            const authHeaders = { ...JSON_HEADERS, Authorization: `Bearer ${key}` };
-            const created = await requestJson(`${ENGINE_BASE_URL}/jobs`, {
-                method: 'POST',
-                headers: authHeaders,
-                body: JSON.stringify(payload),
-            });
-            if (!created.jobId) {
-                throw new RunnerError('Engine response is missing jobId.');
-            }
-
-            const jobUrl = `${ENGINE_BASE_URL}/jobs/${encodeURIComponent(created.jobId)}`;
-            const deadline = Date.now() + pollTimeoutMs;
-
-            while (Date.now() < deadline) {
-                await sleep(pollIntervalMs);
-                const job = await requestJson(jobUrl, {
-                    headers: { Authorization: `Bearer ${key}` },
-                });
-                onStatus(job);
-                if (job.status === 'succeeded') {
-                    const result = job.result || {};
-
-                    if (!result.outputA || !result.outputB) {
-                        throw new RunnerError('Completed execution did not return both graph outputs.');
-                    }
-                    return {
-                        jobId: created.jobId,
-                        directGraph: result.outputA,
-                        bridgeGraph: result.outputB,
-                    };
-                }
-                if (job.status === 'failed') {
-                    throw new RunnerError('The script execution failed.');
-                }
-            }
-            throw new RunnerError('Timed out waiting for the Engine.');
         },
     };
 }

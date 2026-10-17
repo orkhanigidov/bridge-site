@@ -353,7 +353,7 @@ code {
 
 .btn--dark:hover {
     background: var(--ink-soft, #44403c);
-    box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05));
+    box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
 }
 
 .btn--dark:active {
@@ -369,7 +369,7 @@ code {
 .btn--primary:hover {
     background: var(--accent-deep, #134e4a);
     border-color: var(--accent-deep, #134e4a);
-    box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05));
+    box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
 }
 
 .btn--primary:active {
@@ -765,36 +765,75 @@ summary:focus-visible {
     margin-top: 2.25rem;
     display: grid;
     gap: 1.75rem;
+    align-items: start;
 }
 
 @media (min-width: 64rem) {
     .panes {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+}
+
+.pane {
+    min-width: 0;
 }
 
 .pane-head {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
     gap: 1rem;
+    height: 3rem;
     padding-bottom: 0.75rem;
     border-bottom: 1px solid var(--line, #d6d3d1);
     margin-bottom: 0.75rem;
 }
 
 .pane-head h3 {
+    min-width: 0;
     font-size: 1.0625rem;
     font-weight: 500;
 }
 
 .pane-body {
+    display: flex;
+    flex-direction: column;
     background: var(--panel, #ffffff);
     border: 1px solid var(--line, #d6d3d1);
     border-radius: var(--radius, 2px);
+    height: 37rem;
     padding: 0.75rem;
-    min-height: 17rem;
     overflow: hidden;
+}
+
+#graph-direct {
+    position: relative;
+    display: flex;
+    flex: 1 1 0;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+#graph-direct svg {
+    display: block;
+    flex: 1 1 0;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+@media (max-width: 63.999rem) {
+    .pane-body {
+        height: 32rem;
+    }
 }
 
 .pane-body svg {
@@ -802,27 +841,6 @@ summary:focus-visible {
     width: 100%;
     height: auto;
     max-width: 100%;
-}
-
-.graph-edge {
-    stroke: var(--line-strong, #a8a29e);
-    stroke-width: 1.25;
-}
-
-.graph-node {
-    fill: var(--accent, #0f766e);
-    stroke: var(--panel, #ffffff);
-    stroke-width: 1.5;
-}
-
-.graph-meta {
-    margin-top: 0.5rem;
-    padding-top: 0.5rem;
-    border-top: 1px solid var(--line, #d6d3d1);
-    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
-    font-size: 0.75rem;
-    color: var(--ink-mute, #57534e);
-    font-variant-numeric: tabular-nums;
 }
 
 .graph-empty {
@@ -1278,7 +1296,7 @@ summary:focus-visible {
 }
 
 /* Ensure proper spacing after code blocks in steps */
-#reproduce .step > div {
+#reproduce .step>div {
     clear: both;
 }
 
@@ -1316,6 +1334,7 @@ summary:focus-visible {
         opacity: 0;
         transform: translateY(1.25rem);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -1323,8 +1342,13 @@ summary:focus-visible {
 }
 
 @keyframes fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 @keyframes node-pop {
@@ -1332,9 +1356,11 @@ summary:focus-visible {
         opacity: 0;
         transform: scale(0);
     }
+
     70% {
         transform: scale(1.25);
     }
+
     100% {
         opacity: 1;
         transform: scale(1);
@@ -1342,18 +1368,28 @@ summary:focus-visible {
 }
 
 @keyframes edge-draw {
-    from { stroke-dashoffset: 1; }
-    to { stroke-dashoffset: 0; }
+    from {
+        stroke-dashoffset: 1;
+    }
+
+    to {
+        stroke-dashoffset: 0;
+    }
 }
 
 @keyframes flow-dash {
-    to { stroke-dashoffset: -16; }
+    to {
+        stroke-dashoffset: -16;
+    }
 }
 
 @keyframes marker-pulse {
-    0%, 100% {
+
+    0%,
+    100% {
         box-shadow: 0 0 0 0 rgba(15, 118, 110, 0.45);
     }
+
     50% {
         box-shadow: 0 0 0 6px rgba(15, 118, 110, 0);
     }
@@ -1368,20 +1404,45 @@ summary:focus-visible {
     animation: fade-in-up 0.6s ease both;
 }
 
-.hero .eyebrow { animation-delay: 0.05s; }
-.hero .hero-title { animation-delay: 0.15s; }
-.hero .hero-sub { animation-delay: 0.3s; }
-.hero .hero-grid { animation-delay: 0.45s; }
-.hero .authors { animation-delay: 0.6s; }
+.hero .eyebrow {
+    animation-delay: 0.05s;
+}
+
+.hero .hero-title {
+    animation-delay: 0.15s;
+}
+
+.hero .hero-sub {
+    animation-delay: 0.3s;
+}
+
+.hero .hero-grid {
+    animation-delay: 0.45s;
+}
+
+.hero .authors {
+    animation-delay: 0.6s;
+}
 
 .hero .badge {
     animation: fade-in 0.4s ease both;
 }
 
-.hero .badge:nth-child(1) { animation-delay: 0.55s; }
-.hero .badge:nth-child(2) { animation-delay: 0.65s; }
-.hero .badge:nth-child(3) { animation-delay: 0.75s; }
-.hero .badge:nth-child(4) { animation-delay: 0.85s; }
+.hero .badge:nth-child(1) {
+    animation-delay: 0.55s;
+}
+
+.hero .badge:nth-child(2) {
+    animation-delay: 0.65s;
+}
+
+.hero .badge:nth-child(3) {
+    animation-delay: 0.75s;
+}
+
+.hero .badge:nth-child(4) {
+    animation-delay: 0.85s;
+}
 
 /* --- Scroll reveal (JS adds .is-visible when section enters viewport) --- */
 .reveal {
@@ -1411,21 +1472,57 @@ summary:focus-visible {
     transform: translateY(0);
 }
 
-.reveal.is-visible .step:nth-child(1) { transition-delay: 0.05s; }
-.reveal.is-visible .step:nth-child(2) { transition-delay: 0.15s; }
-.reveal.is-visible .step:nth-child(3) { transition-delay: 0.25s; }
-.reveal.is-visible .step:nth-child(4) { transition-delay: 0.35s; }
+.reveal.is-visible .step:nth-child(1) {
+    transition-delay: 0.05s;
+}
 
-.reveal.is-visible .repro-row:nth-child(1) { transition-delay: 0.05s; }
-.reveal.is-visible .repro-row:nth-child(2) { transition-delay: 0.12s; }
-.reveal.is-visible .repro-row:nth-child(3) { transition-delay: 0.19s; }
-.reveal.is-visible .repro-row:nth-child(4) { transition-delay: 0.26s; }
+.reveal.is-visible .step:nth-child(2) {
+    transition-delay: 0.15s;
+}
 
-.reveal.is-visible .link-row:nth-child(1) { transition-delay: 0.05s; }
-.reveal.is-visible .link-row:nth-child(2) { transition-delay: 0.12s; }
-.reveal.is-visible .link-row:nth-child(3) { transition-delay: 0.19s; }
-.reveal.is-visible .link-row:nth-child(4) { transition-delay: 0.26s; }
-.reveal.is-visible .link-row:nth-child(5) { transition-delay: 0.33s; }
+.reveal.is-visible .step:nth-child(3) {
+    transition-delay: 0.25s;
+}
+
+.reveal.is-visible .step:nth-child(4) {
+    transition-delay: 0.35s;
+}
+
+.reveal.is-visible .repro-row:nth-child(1) {
+    transition-delay: 0.05s;
+}
+
+.reveal.is-visible .repro-row:nth-child(2) {
+    transition-delay: 0.12s;
+}
+
+.reveal.is-visible .repro-row:nth-child(3) {
+    transition-delay: 0.19s;
+}
+
+.reveal.is-visible .repro-row:nth-child(4) {
+    transition-delay: 0.26s;
+}
+
+.reveal.is-visible .link-row:nth-child(1) {
+    transition-delay: 0.05s;
+}
+
+.reveal.is-visible .link-row:nth-child(2) {
+    transition-delay: 0.12s;
+}
+
+.reveal.is-visible .link-row:nth-child(3) {
+    transition-delay: 0.19s;
+}
+
+.reveal.is-visible .link-row:nth-child(4) {
+    transition-delay: 0.26s;
+}
+
+.reveal.is-visible .link-row:nth-child(5) {
+    transition-delay: 0.33s;
+}
 
 /* --- SVG pipeline data-flow animation (Figures 1 & 2) --- */
 /* Flowing dashes on connector lines/arrows visualize the data path:
@@ -1440,35 +1537,6 @@ summary:focus-visible {
 .figure svg path[stroke-dasharray="4,2"] {
     stroke-dasharray: 4 2;
     animation: flow-dash 1.6s linear infinite;
-}
-
-/* --- Graph rendering animation (runner output) --- */
-/* Nodes pop in with a stagger, mirroring the async GraphUpdateJob */
-.graph-node {
-    transform-box: fill-box;
-    transform-origin: center;
-    animation: node-pop 0.4s ease both;
-}
-
-.graph-node:nth-of-type(1) { animation-delay: 0.02s; }
-.graph-node:nth-of-type(2) { animation-delay: 0.04s; }
-.graph-node:nth-of-type(3) { animation-delay: 0.06s; }
-.graph-node:nth-of-type(4) { animation-delay: 0.08s; }
-.graph-node:nth-of-type(5) { animation-delay: 0.10s; }
-.graph-node:nth-of-type(6) { animation-delay: 0.12s; }
-.graph-node:nth-of-type(7) { animation-delay: 0.14s; }
-.graph-node:nth-of-type(8) { animation-delay: 0.16s; }
-.graph-node:nth-of-type(9) { animation-delay: 0.18s; }
-.graph-node:nth-of-type(n+10) { animation-delay: 0.2s; }
-
-.graph-edge {
-    stroke-dasharray: 200;
-    stroke-dashoffset: 200;
-    animation: edge-draw 0.6s ease forwards;
-}
-
-.graph-meta {
-    animation: fade-in 0.5s ease 0.3s both;
 }
 
 /* --- Run stages animation --- */
@@ -1487,15 +1555,13 @@ summary:focus-visible {
 
 /* --- Reduced motion: disable all animations --- */
 @media (prefers-reduced-motion: reduce) {
+
     .hero .eyebrow,
     .hero .hero-title,
     .hero .hero-sub,
     .hero .hero-grid,
     .hero .authors,
     .hero .badge,
-    .graph-node,
-    .graph-edge,
-    .graph-meta,
     .stage-row.is-done {
         animation: none !important;
         opacity: 1 !important;
@@ -1544,9 +1610,17 @@ summary:focus-visible {
     display: inline-block;
 }
 
-.terminal-dot--red { background: #ff5f57; }
-.terminal-dot--yellow { background: #febc2e; }
-.terminal-dot--green { background: #28c840; }
+.terminal-dot--red {
+    background: #ff5f57;
+}
+
+.terminal-dot--yellow {
+    background: #febc2e;
+}
+
+.terminal-dot--green {
+    background: #28c840;
+}
 
 /* Terminal codeblock: dark window look */
 .codeblock--flat {
@@ -1650,7 +1724,11 @@ summary:focus-visible {
     white-space: nowrap;
 }
 
-.side-tag--a { border-color: var(--ink); color: var(--ink); }
+.side-tag--a {
+    border-color: var(--ink);
+    color: var(--ink);
+}
+
 .side-tag--b {
     border-color: var(--accent);
     color: var(--accent-deep);
@@ -1658,9 +1736,18 @@ summary:focus-visible {
 }
 
 /* SVG viewer affordances: pan/zoom cursor states and the floating toolbar. */
-.pane-body { position: relative; }
-.pane-body svg { touch-action: none; cursor: grab; }
-.pane-body svg.is-panning { cursor: grabbing; }
+.pane-body {
+    position: relative;
+}
+
+.pane-body svg {
+    touch-action: none;
+    cursor: grab;
+}
+
+.pane-body svg.is-panning {
+    cursor: grabbing;
+}
 
 .graph-toolbar {
     position: absolute;
@@ -1683,4 +1770,131 @@ summary:focus-visible {
     border-color: var(--accent);
     color: var(--accent-deep);
     background: var(--band);
+}
+
+/* ==== pane B: GraphML viewer ==== */
+.pane-body--3d {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.graph3d-meta {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.75rem;
+    color: var(--ink-mute, #57534e);
+    font-variant-numeric: tabular-nums;
+    margin: 0;
+}
+
+.graph3d-stage {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    border: 1px dashed var(--line, #d6d3d1);
+    border-radius: var(--radius, 2px);
+    perspective: 900px;
+    overflow: hidden;
+}
+
+.graph3d-stage:fullscreen {
+    width: 100vw;
+    height: 100vh;
+    min-height: 100vh;
+    border: 0;
+    border-radius: 0;
+    background: var(--panel, #ffffff);
+}
+
+.graph3d-stage canvas {
+    display: block;
+    position: absolute;
+    inset: 0;
+}
+
+.pane-body--3d .graph2d-canvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    transform-origin: center;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+    touch-action: none;
+    cursor: grab;
+}
+
+.pane-body--3d .graph2d-canvas.is-orbiting {
+    cursor: grabbing;
+}
+
+.graph2d-controls {
+    position: absolute;
+    z-index: 2;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    gap: 0.25rem;
+}
+
+.graph2d-controls button[aria-pressed="true"] {
+    border-color: var(--accent, #0f766e);
+    color: var(--accent-deep, #134e4a);
+    background: var(--accent-soft, #ccfbf1);
+}
+
+.graph2d-edge {
+    fill: none;
+    stroke: var(--line-strong, #a8a29e);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.graph2d-arrow {
+    fill: var(--line-strong, #a8a29e);
+}
+
+.graph2d-node {
+    fill: var(--accent, #0f766e);
+    stroke: var(--panel, #ffffff);
+    stroke-width: 1.5;
+}
+
+/* ==== panes: path switch (visible only when both paths returned data) ==== */
+.view-switch {
+    display: inline-flex;
+    border: 1px solid var(--line-strong, #a8a29e);
+    border-radius: var(--radius, 2px);
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+}
+
+.view-switch button {
+    appearance: none;
+    border: 0;
+    background: var(--panel, #fff);
+    padding: 0.4rem 0.8rem;
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-mute, #57534e);
+    cursor: pointer;
+    transition: background var(--transition-fast, 0.15s ease), color var(--transition-fast, 0.15s ease);
+}
+
+.view-switch button+button {
+    border-left: 1px solid var(--line-strong, #a8a29e);
+}
+
+.view-switch button:hover {
+    color: var(--ink, #1c1917);
+}
+
+.view-switch button.is-active {
+    background: var(--ink, #1c1917);
+    color: #fff;
 }

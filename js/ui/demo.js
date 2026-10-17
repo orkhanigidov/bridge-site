@@ -1,12 +1,15 @@
 /**
  * Demo state machine: execute a script on the Engine (one synchronous request),
- * then show the SVG graphs the Engine returned on both panels.
+ * then show what the Engine returned — the SVGs of both paths on pane A and the
+ * GraphML files (rendered from their original coordinates) on pane B.
  */
 import { CHECKS, STAGES, PARAMS } from '../config/site.js';
 import { initCodeTabs } from './codeTabs.js';
 import { showGraph } from './graphViewer.js';
 
-export function initDemo(root, client, config) {
+const PATH_LABELS = { cpp: 'C++ direct', lua: 'Lua · via BRIDGE' };
+
+export function initDemo(root, client, config, pane3d) {
     const els = {
         runnerUrl: root.querySelector('#runner-url'),
         loadCases: root.querySelector('#load-cases'),
@@ -16,7 +19,8 @@ export function initDemo(root, client, config) {
         sourceBridge: root.querySelector('#source-bridge'),
         runCustom: root.querySelector('#run-custom'),
         graphDirect: root.querySelector('#graph-direct'),
-        graphBridge: root.querySelector('#graph-bridge'),
+        svgSwitch: root.querySelector('#svg-switch'),
+        graphmlSwitch: root.querySelector('#graphml-switch'),
         paramsRow: root.querySelector('#params-row'),
         paramsNote: root.querySelector('#params-note'),
         nodes: root.querySelector('#nodes'),
@@ -39,7 +43,15 @@ export function initDemo(root, client, config) {
         codeView: root.querySelector('#code-view'),
     });
 
-    const state = { busy: false, codeId: '', codes: new Map(), isCustomCode: false };
+    const state = {
+        busy: false,
+        isCustomCode: false,
+        svgs: { cpp: '', lua: '' },
+        graphml: { cpp: '', lua: '' },
+        activeSvg: 'cpp',
+        activeGraphml: 'lua',
+        graphName: '',
+    };
 
     const STORAGE_KEY = 'bridge_api_secret';
     const savedSecret = localStorage.getItem(STORAGE_KEY);
@@ -137,11 +149,50 @@ export function initDemo(root, client, config) {
     });
     syncParamLabels();
 
-    /* ---- output panels ---- */
+    /* ---- output panels and path switches ---- */
 
     function showOutput(panel, svgText) {
         showGraph(panel, svgText);
     }
+
+    function setActiveButton(switchEl, view) {
+        if (!switchEl) return;
+        for (const button of switchEl.querySelectorAll('button')) {
+            button.classList.toggle('is-active', button.dataset.view === view);
+        }
+    }
+
+    function bindSwitch(switchEl, onPick) {
+        if (!switchEl) return;
+        switchEl.addEventListener('click', (event) => {
+            const button = event.target.closest('button[data-view]');
+            if (!button || button.classList.contains('is-active')) return;
+            setActiveButton(switchEl, button.dataset.view);
+            onPick(button.dataset.view);
+        });
+    }
+
+    // A switch is only meaningful when the Engine returned both variants.
+    function refreshSwitches() {
+        if (els.svgSwitch) els.svgSwitch.hidden = !(state.svgs.cpp && state.svgs.lua);
+        if (els.graphmlSwitch) els.graphmlSwitch.hidden = !(state.graphml.cpp && state.graphml.lua);
+    }
+
+    function renderSvgPane() {
+        showOutput(els.graphDirect, state.svgs[state.activeSvg] || '');
+    }
+
+    bindSwitch(els.svgSwitch, (view) => {
+        state.activeSvg = view;
+        renderSvgPane();
+    });
+    bindSwitch(els.graphmlSwitch, (view) => {
+        state.activeGraphml = view;
+        const text = state.graphml[view];
+        if (text) {
+            pane3d?.render(`${state.graphName || 'graph'} · ${PATH_LABELS[view]}`, text);
+        }
+    });
 
     /* ---- case loading ---- */
 
@@ -171,10 +222,8 @@ export function initDemo(root, client, config) {
             // Reset isCustomCode because we just loaded a predefined layout method
             state.isCustomCode = false;
 
-            if (typeof codeTabs !== 'undefined') {
-                codeTabs.setSource('direct', els.sourceDirect.value);
-                codeTabs.setSource('bridge', els.sourceBridge.value);
-            }
+            codeTabs.setSource('direct', els.sourceDirect.value);
+            codeTabs.setSource('bridge', els.sourceBridge.value);
 
             setBusy(false);
             setStatus('Source code loaded. Ready to execute.');
@@ -269,8 +318,11 @@ export function initDemo(root, client, config) {
 
         try {
             setBusy(true);
+            state.svgs = { cpp: '', lua: '' };
+            state.graphml = { cpp: '', lua: '' };
+            refreshSwitches();
             showOutput(els.graphDirect, '');
-            showOutput(els.graphBridge, '');
+            pane3d?.clear('Executing — the returned GraphML will appear here.');
             els.stagesSummary.hidden = true;
             renderStages(new Set(['queued']), null);
 
@@ -281,10 +333,20 @@ export function initDemo(root, client, config) {
             renderStages(STAGES.map((stage) => stage.id).reduce((set, id) => set.add(id), new Set()), null);
             els.stagesSummary.hidden = false;
             els.stagesSummary.textContent = 'custom script · succeeded';
-            showOutput(els.graphDirect, result.svgs?.cpp || '');
-            showOutput(els.graphBridge, result.svgs?.lua || '');
-            const waitedS = (Date.now() - state.startedAt) / 1000;
-            setStatus('Completed. Showing graph data returned by the Engine.', 'succeeded');
+
+            // Per path the Engine returns the SVG and the laid-out GraphML.
+            state.svgs = { cpp: result.svgs?.cpp || '', lua: result.svgs?.lua || '' };
+            state.graphml = { cpp: result.graphml?.cpp || '', lua: result.graphml?.lua || '' };
+            state.graphName = graphName;
+            state.activeSvg = state.svgs.cpp ? 'cpp' : 'lua';
+            state.activeGraphml = state.graphml.lua ? 'lua' : 'cpp';
+            setActiveButton(els.svgSwitch, state.activeSvg);
+            setActiveButton(els.graphmlSwitch, state.activeGraphml);
+            refreshSwitches();
+            renderSvgPane();
+            pane3d?.render(`${graphName} · ${PATH_LABELS[state.activeGraphml]}`,
+                state.graphml[state.activeGraphml] || '');
+            setStatus('Completed. Pane A shows the returned SVGs, pane B the returned GraphML layout.', 'succeeded');
         } catch (error) {
             renderStages(new Set(), 'running');
             els.stagesSummary.hidden = false;
@@ -321,5 +383,4 @@ export function initDemo(root, client, config) {
     bindFileSource(els.fileBridge, els.sourceBridge, 'bridge');
 
     showOutput(els.graphDirect, '');
-    showOutput(els.graphBridge, '');
 }

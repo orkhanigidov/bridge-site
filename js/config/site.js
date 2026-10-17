@@ -7,8 +7,6 @@ export const RUNNER = {
     // Leave empty to let visitors enter their own key in the demo section instead.
     // Never commit a real key to source control.
     defaultApiKey: '',
-    pollIntervalMs: 1500,  // delay between job-status polls
-    pollTimeoutMs: 180000, // give up polling after 3 minutes
 };
 
 export const PARAMS = {
