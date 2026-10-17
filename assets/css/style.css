@@ -1787,13 +1787,21 @@ summary:focus-visible {
     margin: 0;
 }
 
+.graph3d-help {
+    margin: 0;
+    color: var(--ink-mute, #57534e);
+    font-size: 0.75rem;
+}
+
 .graph3d-stage {
     position: relative;
     flex: 1;
     min-height: 0;
-    border: 1px dashed var(--line, #d6d3d1);
+    border: 1px solid var(--line, #d6d3d1);
     border-radius: var(--radius, 2px);
-    perspective: 900px;
+    background:
+        radial-gradient(ellipse at center, rgba(204, 251, 241, 0.3), transparent 70%),
+        var(--panel, #ffffff);
     overflow: hidden;
 }
 
@@ -1810,56 +1818,71 @@ summary:focus-visible {
     display: block;
     position: absolute;
     inset: 0;
-}
-
-.pane-body--3d .graph2d-canvas {
-    position: absolute;
-    inset: 0;
-    display: block;
-    width: 100%;
-    height: 100%;
-    transform-origin: center;
-    transform-style: preserve-3d;
-    backface-visibility: hidden;
     touch-action: none;
-    cursor: grab;
 }
 
-.pane-body--3d .graph2d-canvas.is-orbiting {
-    cursor: grabbing;
-}
-
-.graph2d-controls {
+.graph3d-toolbar {
     position: absolute;
     z-index: 2;
     top: 0.5rem;
-    right: 0.5rem;
+    inset-inline: 0.5rem;
     display: flex;
-    gap: 0.25rem;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    pointer-events: none;
 }
 
-.graph2d-controls button[aria-pressed="true"] {
+.graph3d-toolbar > * {
+    pointer-events: auto;
+}
+
+.graph3d-toolbar button[aria-pressed="true"] {
     border-color: var(--accent, #0f766e);
     color: var(--accent-deep, #134e4a);
     background: var(--accent-soft, #ccfbf1);
 }
 
-.graph2d-edge {
-    fill: none;
-    stroke: var(--line-strong, #a8a29e);
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+.graph3d-toolbar .graph-btn {
+    min-height: 2rem;
+    padding-inline: 0.55rem;
+    box-shadow: var(--shadow-sm);
 }
 
-.graph2d-arrow {
-    fill: var(--line-strong, #a8a29e);
+.graph3d-search {
+    flex: 1 1 9rem;
+    min-width: 8rem;
+    max-width: 15rem;
+    min-height: 2rem;
+    padding: 0.35rem 0.55rem;
+    border: 1px solid var(--line-strong, #a8a29e);
+    border-radius: var(--radius, 2px);
+    background: var(--panel, #fff);
+    color: var(--ink, #1c1917);
+    font: 0.75rem var(--font-sans, "Space Grotesk", ui-sans-serif, system-ui, sans-serif);
+    box-shadow: var(--shadow-sm);
 }
 
-.graph2d-node {
-    fill: var(--accent, #0f766e);
-    stroke: var(--panel, #ffffff);
-    stroke-width: 1.5;
+.graph3d-search:focus-visible,
+.graph3d-toolbar button:focus-visible {
+    outline: var(--focus-ring, 2px solid #0f766e);
+    outline-offset: var(--focus-offset, 2px);
+}
+
+.graph3d-node-info {
+    position: absolute;
+    z-index: 1;
+    inset-inline-start: 0.65rem;
+    inset-block-end: 0.55rem;
+    max-width: calc(100% - 1.3rem);
+    padding: 0.3rem 0.55rem;
+    border: 1px solid rgba(214, 211, 209, 0.85);
+    border-radius: var(--radius, 2px);
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--ink-soft, #44403c);
+    font: 0.7rem var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    overflow-wrap: anywhere;
+    pointer-events: none;
 }
 
 /* ==== panes: path switch (visible only when both paths returned data) ==== */

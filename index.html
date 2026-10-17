@@ -75,8 +75,8 @@
                         <p class="eyebrow">Live comparison</p>
                         <h2>One case, two paths, side by side</h2>
                         <p class="lead">Connect the Engine and pick a predefined C++/Lua pair, or paste your own.
-                            Pane A fills only after the Engine returns graph data; pane B shows the parsed GraphML
-                            using its original 2D coordinates.</p>
+                                Pane A fills only after the Engine returns graph data; pane B explores the parsed GraphML
+                                in an interactive 3D view while preserving its original layout coordinates.</p>
                     </div>
                     <div class="runner-url">
                         <label class="label" for="runner-url">API secret key</label>
@@ -193,9 +193,12 @@
                                 <button type="button" data-view="lua" class="is-active">Lua · via BRIDGE</button>
                                 <button type="button" data-view="cpp">C++ direct</button>
                             </div>
-                            <p class="graph3d-meta" id="graph3d-meta">Run the Engine — drag to move; 3D toggles orbit.
-                                Use +/− to zoom, Fit to reset, ⛶ for fullscreen.</p>
-                            <div id="graph3d-stage" class="graph3d-stage" aria-label="GraphML visualization"></div>
+                            <p class="graph3d-meta" id="graph3d-meta" role="status" aria-live="polite">Run the Engine
+                                to explore its GraphML result.</p>
+                            <div id="graph3d-stage" class="graph3d-stage" aria-label="GraphML 3D visualization"
+                                aria-describedby="graph3d-meta graph3d-help"></div>
+                            <p class="graph3d-help" id="graph3d-help">Drag to orbit · right-drag to pan · scroll to zoom ·
+                                click a node to focus.</p>
                         </div>
                     </section>
                 </div>
