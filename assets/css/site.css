@@ -21,7 +21,6 @@
     --transition-fast: 0.15s ease;
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
-    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
 }
 
 /* ============ reduced motion ============ */
@@ -145,6 +144,7 @@ code {
     max-width: 52rem;
     border-left: 2px solid var(--accent, #0f766e);
     padding-left: 1.25rem;
+    clear: both;
 }
 
 /* ============ header / footer ============ */
@@ -377,39 +377,13 @@ code {
     transform: scale(0.98);
 }
 
-.btn--block {
-    width: 100%;
-}
-
 .btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
 
-.btn-ghost {
-    border: 1px solid var(--line-strong, #a8a29e);
-    border-radius: var(--radius, 2px);
-    background: var(--panel, #ffffff);
-    padding: 0.35rem 0.7rem;
-    font: 500 0.75rem var(--font-sans, "Space Grotesk", ui-sans-serif, system-ui, sans-serif);
-    color: var(--ink-soft, #44403c);
-    cursor: pointer;
-    transition: background-color var(--transition-fast, 0.15s ease), border-color var(--transition-fast, 0.15s ease), color var(--transition-fast, 0.15s ease);
-}
-
-.btn-ghost:hover {
-    background: var(--band, #f5f5f4);
-    border-color: var(--accent, #0f766e);
-    color: var(--accent-deep, #134e4a);
-}
-
-.btn-ghost:active {
-    background: var(--line, #d6d3d1);
-    transform: scale(0.98);
-}
-
 /* Focus visible - unified token-based */
-:where(.btn, .tab, .btn-ghost, .seed-btn, .upload, .copy-btn, .nav-link, .brand):focus-visible {
+:where(.btn, .tab, .stepper-button, .upload, .copy-btn, .nav-link, .brand):focus-visible {
     outline: var(--focus-ring, 2px solid #0f766e);
     outline-offset: var(--focus-offset, 2px);
 }
@@ -444,12 +418,12 @@ summary:focus-visible {
     }
 }
 
-.runner-url .url-row {
+.api-key-row {
     display: flex;
     margin-top: 0.5rem;
 }
 
-.runner-url input {
+.api-key-field input {
     flex: 1;
     min-width: 0;
     border: 1px solid var(--line-strong, #a8a29e);
@@ -461,18 +435,18 @@ summary:focus-visible {
     transition: border-color var(--transition-fast, 0.15s ease), box-shadow var(--transition-fast, 0.15s ease);
 }
 
-.runner-url input:hover {
+.api-key-field input:hover {
     border-color: var(--accent, #0f766e);
 }
 
-.runner-url input:focus-visible {
+.api-key-field input:focus-visible {
     outline: var(--focus-ring, 2px solid #0f766e);
     outline-offset: var(--focus-offset, 2px);
     border-color: var(--accent, #0f766e);
     box-shadow: 0 0 0 3px var(--accent-soft, #ccfbf1);
 }
 
-.runner-url .btn {
+.api-key-field .btn {
     border-left: 0;
     border-radius: 0 var(--radius, 2px) var(--radius, 2px) 0;
 }
@@ -600,7 +574,7 @@ summary:focus-visible {
 }
 
 .control-value,
-.seed-val {
+.stepper-value {
     font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
     font-size: 0.875rem;
     color: var(--ink, #1c1917);
@@ -609,7 +583,7 @@ summary:focus-visible {
     text-align: right;
 }
 
-.seed-box {
+.stepper {
     display: inline-flex;
     align-items: center;
     border: 1px solid var(--line-strong, #a8a29e);
@@ -617,7 +591,7 @@ summary:focus-visible {
     background: var(--panel, #ffffff);
 }
 
-.seed-btn {
+.stepper-button {
     border: 0;
     background: transparent;
     width: 2rem;
@@ -628,17 +602,17 @@ summary:focus-visible {
     transition: background-color var(--transition-fast, 0.15s ease), color var(--transition-fast, 0.15s ease);
 }
 
-.seed-btn:hover {
+.stepper-button:hover {
     background: var(--band, #f5f5f4);
     color: var(--ink, #1c1917);
 }
 
-.seed-btn:active {
+.stepper-button:active {
     background: var(--line, #d6d3d1);
     transform: scale(0.95);
 }
 
-.seed-val {
+.stepper-value {
     padding: 0 0.4rem;
 }
 
@@ -806,7 +780,7 @@ summary:focus-visible {
     overflow: hidden;
 }
 
-#graph-direct {
+#svg-output {
     position: relative;
     display: flex;
     flex: 1 1 0;
@@ -818,7 +792,7 @@ summary:focus-visible {
     overflow: hidden;
 }
 
-#graph-direct svg {
+#svg-output svg {
     display: block;
     flex: 1 1 0;
     width: 100%;
@@ -1087,6 +1061,15 @@ summary:focus-visible {
     margin: 0 0 2.5rem;
     overflow-x: hidden;
     max-width: 100%;
+    clear: both;
+}
+
+#architecture .figure {
+    margin-bottom: 3rem;
+}
+
+#architecture .section-footnote {
+    margin-top: 3rem;
 }
 
 .figure svg {
@@ -1108,7 +1091,7 @@ summary:focus-visible {
 
 .step {
     display: grid;
-    gap: 0.75rem;
+    gap: 1rem;
 }
 
 @media (min-width: 48rem) {
@@ -1143,7 +1126,13 @@ summary:focus-visible {
 }
 
 .step .codeblock {
-    margin-top: 0.9rem;
+    margin-top: 1.5rem;
+    max-width: 100%;
+    clear: both;
+}
+
+#reproduce .step .codeblock--flat pre {
+    overflow-x: auto;
     max-width: 100%;
 }
 
@@ -1155,7 +1144,7 @@ summary:focus-visible {
 .repro-row {
     display: grid;
     gap: 0.25rem;
-    padding-block: 1rem;
+    padding: 1rem;
     border-bottom: 1px solid var(--line, #d6d3d1);
     font-size: 0.875rem;
     color: var(--ink-soft, #44403c);
@@ -1246,85 +1235,6 @@ summary:focus-visible {
         --ink-mute: #333;
     }
 }
-
-
-
-
-
-/* ============ Targeted overlap fixes ============ */
-
-/* Architecture section - prevent figure/footnote overlap */
-#architecture .figure {
-    margin-bottom: 3rem;
-    clear: both;
-}
-
-#architecture .section-footnote {
-    margin-top: 2.5rem;
-    clear: both;
-}
-
-/* Ensure SVG figures don't overflow and cause overlap */
-#architecture .figure svg,
-#reproduce .figure svg {
-    max-width: 100%;
-    height: auto;
-    display: block;
-}
-
-/* Reproduce section - prevent step/codeblock overlap */
-#reproduce .steps {
-    gap: 2.5rem;
-}
-
-#reproduce .step {
-    gap: 1rem;
-}
-
-#reproduce .step .codeblock {
-    margin-top: 1.5rem;
-    clear: both;
-}
-
-#reproduce .step .codeblock--flat {
-    clear: both;
-}
-
-#reproduce .step .codeblock--flat pre {
-    overflow-x: auto;
-    max-width: 100%;
-}
-
-/* Ensure proper spacing after code blocks in steps */
-#reproduce .step>div {
-    clear: both;
-}
-
-/* Repro rows spacing */
-#reproduce .repro-rows {
-    margin-top: 3rem;
-    clear: both;
-}
-
-#reproduce .repro-row {
-    clear: both;
-}
-
-/* Architecture section footnote spacing */
-#architecture .section-footnote {
-    margin-top: 3rem;
-    clear: both;
-}
-
-/* Ensure figures don't overlap with following content */
-.figure {
-    clear: both;
-}
-
-.section-footnote {
-    clear: both;
-}
-
 
 /* ============ animations ============ */
 

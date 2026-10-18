@@ -165,7 +165,7 @@ function showEmptyState(panel) {
 }
 
 /** Public API: render one Engine SVG (or an empty state) into a pane. */
-export function showGraph(panel, svgText) {
+export function renderSvgGraph(panel, svgText) {
     panel.textContent = '';
     const trimmed = String(svgText || '').trim();
     const svg = trimmed ? parseEngineSvg(trimmed) : null;

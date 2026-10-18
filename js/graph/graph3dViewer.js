@@ -1,7 +1,7 @@
-import { parseGraphml } from './graphml.js';
+import { parseGraphML } from './graphMLParser.js';
 
-const ACCENT = '#0f766e';
-const LINK = '#57534e';
+const ACCENT_COLOR = '#0f766e';
+const LINK_COLOR = '#57534e';
 const NODE_PALETTE = ['#0f766e', '#2563eb', '#b45309', '#7c3aed', '#be123c', '#0f766e'];
 const INITIAL_MESSAGE = 'Run the Engine to explore its GraphML result.';
 const THREE = window.THREE;
@@ -23,7 +23,7 @@ function getNodeColor(node, focusedNode = null, hasSearchQuery = false, searchMa
         const type = Math.abs(Math.trunc(node.nodetype)) % (NODE_PALETTE.length - 1);
         return NODE_PALETTE[type];
     }
-    return ACCENT;
+    return ACCENT_COLOR;
 }
 
 function getNodeValue(node) {
@@ -390,8 +390,8 @@ function prepareGraphData(parsed) {
                 ...link,
                 source: route[index - 1],
                 target: route[index],
-                graphmlSource: link.source,
-                graphmlTarget: link.target,
+                graphMLSource: link.source,
+                graphMLTarget: link.target,
                 directed: link.directed && index === route.length - 1,
             });
         }
@@ -435,9 +435,9 @@ function prepareGraphData(parsed) {
     };
 }
 
-export function initGraph3d({ container, meta }) {
-    const stage = document.querySelector(container);
-    const metaEl = document.querySelector(meta);
+export function createGraph3dViewer({ stageSelector, metaSelector }) {
+    const stage = document.querySelector(stageSelector);
+    const metaEl = document.querySelector(metaSelector);
     if (!stage || !metaEl) {
         console.warn('[graph3d] pane-B elements not found — check index.html.');
         return { render() {}, clear() {} };
@@ -534,14 +534,14 @@ export function initGraph3d({ container, meta }) {
                 return object;
             })
             .nodeThreeObjectExtend(false)
-            .nodeColor(() => ACCENT)
+            .nodeColor(() => ACCENT_COLOR)
             .nodeVal(getNodeValue)
             .nodeRelSize(4)
-            .linkColor(() => LINK)
+            .linkColor(() => LINK_COLOR)
             .linkLabel((link) => {
-                const source = link.graphmlSource ||
+                const source = link.graphMLSource ||
                     (typeof link.source === 'object' ? link.source.id : link.source);
-                const target = link.graphmlTarget ||
+                const target = link.graphMLTarget ||
                     (typeof link.target === 'object' ? link.target.id : link.target);
                 return `${escapeHtml(source)} → ${escapeHtml(target)}` +
                     `${link.type ? ` · ${escapeHtml(link.type)}` : ''}`;
@@ -549,7 +549,7 @@ export function initGraph3d({ container, meta }) {
             .linkOpacity(0.82)
             .linkWidth(1.2)
             .linkDirectionalArrowLength(getArrowLength)
-            .linkDirectionalArrowColor(() => LINK)
+            .linkDirectionalArrowColor(() => LINK_COLOR)
             .linkDirectionalArrowRelPos(getArrowPosition)
             .linkCurvature(0)
             .d3VelocityDecay(0.32)
@@ -592,15 +592,15 @@ export function initGraph3d({ container, meta }) {
 
     return {
         clear,
-        render(name, graphmlText) {
+        render(name, graphMLText) {
             clear();
-            if (!graphmlText || !graphmlText.trim()) {
+            if (!graphMLText || !graphMLText.trim()) {
                 metaEl.textContent = 'The Engine response did not include GraphML data — ' +
-                    'check the field mapped to "graphml" in js/api/runnerClient.js.';
+                    'check the field mapped to "graphml" in js/api/engineClient.js.';
                 return;
             }
             try {
-                const parsed = parseGraphml(graphmlText);
+                const parsed = parseGraphML(graphMLText);
                 const data = prepareGraphData(parsed);
                 const renderer = ensureGraph();
                 controls = createControls(stage, renderer, metaEl, fitGraph);

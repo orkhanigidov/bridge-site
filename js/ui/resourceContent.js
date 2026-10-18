@@ -2,11 +2,11 @@
  * Renders config-driven page content: the resource links and the BibTeX block.
  * Links with an empty href or '#' render as explicit "pending" slots, never as dead links.
  */
-import { LINKS, BIBTEX } from '../config/site.js';
+import { RESOURCE_LINKS, THESIS_BIBTEX } from '../config/siteConfig.js';
 
-export function initContent({ linksList, bibtexCode }) {
-    linksList.textContent = '';
-    for (const link of LINKS) {
+export function renderResourceContent({ linksContainer, bibtexCode }) {
+    linksContainer.textContent = '';
+    for (const link of RESOURCE_LINKS) {
         const row = document.createElement('div');
         row.className = 'link-row';
 
@@ -34,8 +34,8 @@ export function initContent({ linksList, bibtexCode }) {
             row.append(pending);
         }
 
-        linksList.append(row);
+        linksContainer.append(row);
     }
 
-    bibtexCode.textContent = BIBTEX;
+    bibtexCode.textContent = THESIS_BIBTEX;
 }

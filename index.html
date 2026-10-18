@@ -16,7 +16,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/site.css">
 </head>
 
 <body>
@@ -78,12 +78,12 @@
                                 Pane A fills only after the Engine returns graph data; pane B explores the parsed GraphML
                                 in an interactive 3D view while preserving its original layout coordinates.</p>
                     </div>
-                    <div class="runner-url">
-                        <label class="label" for="runner-url">API secret key</label>
-                        <div class="url-row">
-                            <input id="runner-url" type="password" autocomplete="off" spellcheck="false"
+                    <div class="api-key-field">
+                        <label class="label" for="api-key">API secret key</label>
+                        <div class="api-key-row">
+                            <input id="api-key" type="password" autocomplete="off" spellcheck="false"
                                 placeholder="Enter your generated API secret key">
-                            <button id="load-cases" class="btn btn--dark" type="button">Load cases</button>
+                            <button id="load-resources" class="btn btn--dark" type="button">Load resources</button>
                         </div>
                     </div>
                 </div>
@@ -110,21 +110,22 @@
 
                     <div class="params-row" id="params-row" hidden>
                         <div class="control">
-                            <label class="label" for="nodes">Layer distance</label>
+                            <label class="label" for="layer-distance">Layer distance</label>
                             <div class="control-row">
-                                <input type="range" id="nodes" min="1" max="100" step="1" value="3">
-                                <span class="control-value" id="nodes-val">3</span>
+                                <input type="range" id="layer-distance" min="1" max="100" step="1" value="3">
+                                <span class="control-value" id="layer-distance-value">3</span>
                             </div>
                         </div>
                         <div class="control">
-                            <label class="label" id="seed-label">Node distance</label>
+                            <label class="label" id="node-distance-label">Node distance</label>
                             <div class="control-row">
-                                <div class="seed-box">
-                                    <button class="seed-btn" id="seed-dec" type="button"
+                                <div class="stepper">
+                                    <button class="stepper-button" id="node-distance-decrease" type="button"
                                         aria-label="Decrease node distance">−</button>
-                                    <span class="seed-val" id="seed-val" role="spinbutton" aria-labelledby="seed-label"
+                                    <span class="stepper-value" id="node-distance-value" role="spinbutton"
+                                        aria-labelledby="node-distance-label"
                                         aria-valuemin="1" aria-valuemax="100" aria-valuenow="3" tabindex="0">3</span>
-                                    <button class="seed-btn" id="seed-inc" type="button"
+                                    <button class="stepper-button" id="node-distance-increase" type="button"
                                         aria-label="Increase node distance">+</button>
                                 </div>
                             </div>
@@ -179,7 +180,7 @@
                                 <button type="button" data-view="cpp" class="is-active">C++ direct</button>
                                 <button type="button" data-view="lua">Lua · via BRIDGE</button>
                             </div>
-                            <div id="graph-direct"></div>
+                            <div id="svg-output"></div>
                         </div>
                     </section>
                     <section class="pane pane--b">

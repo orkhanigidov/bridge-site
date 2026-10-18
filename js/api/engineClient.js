@@ -1,28 +1,28 @@
 /**
- * HTTPS client for the BRIDGE Engine.
+ * API client for the BRIDGE Engine.
  * API secrets are sent only in request headers, never in URLs.
  */
-export class RunnerError extends Error {
+export class EngineError extends Error {
     constructor(message) {
         super(message);
-        this.name = 'RunnerError';
+        this.name = 'EngineError';
     }
 }
 
 // Fixed host: URL query/fragment and HTTP protocol are not accepted.
 const ENGINE_BASE_URL = 'https://api.bridgeengine.tech';
-const JSON_HEADERS = { 'Content-Type': 'application/json' };
+const JSON_CONTENT_HEADERS = { 'Content-Type': 'application/json' };
 const REQUEST_TIMEOUT_MS = 180_000;
 
-function assertApiKey(apiKey) {
+function requireApiKey(apiKey) {
     if (typeof apiKey !== 'string' || !apiKey.trim()) {
-        throw new RunnerError('Enter your API secret key first.');
+        throw new EngineError('Enter your API secret key first.');
     }
 
     return apiKey.trim();
 }
 
-async function requestJson(url, options = {}) {
+async function requestJson(requestUrl, options = {}) {
     const controller = new AbortController();
     const timeoutId = setTimeout(
         () => controller.abort(),
@@ -30,7 +30,7 @@ async function requestJson(url, options = {}) {
     );
 
     try {
-        const response = await fetch(url, {
+        const response = await fetch(requestUrl, {
             ...options,
             // Prevents secret headers from being forwarded to another host via redirects.
             redirect: 'error',
@@ -42,25 +42,25 @@ async function requestJson(url, options = {}) {
         });
 
         if (!response.ok) {
-            throw new RunnerError(`Engine returned HTTP ${response.status}.`);
+            throw new EngineError(`Engine returned HTTP ${response.status}.`);
         }
 
         try {
             return await response.json();
         } catch {
-            throw new RunnerError('Engine did not return a valid JSON response.');
+            throw new EngineError('Engine did not return a valid JSON response.');
         }
     } catch (error) {
-        if (error instanceof RunnerError) {
+        if (error instanceof EngineError) {
             throw error;
         }
 
         if (error?.name === 'AbortError') {
-            throw new RunnerError('The request timed out. Check the Engine status.');
+            throw new EngineError('The request timed out. Check the Engine status.');
         }
 
         // The key, response body, and internal server details are never shown to the user.
-        throw new RunnerError(
+        throw new EngineError(
             'Could not reach the Engine. Check the URL, CORS, and server status.'
         );
     } finally {
@@ -68,11 +68,11 @@ async function requestJson(url, options = {}) {
     }
 }
 
-export function createRunnerClient() {
+export function createEngineClient() {
     return {
         /** GET /api/discovery → { methods: [], files: [] } */
         async loadAvailableResources(apiKey) {
-            const key = assertApiKey(apiKey);
+            const key = requireApiKey(apiKey);
 
             return requestJson(`${ENGINE_BASE_URL}/api/discovery`, {
                 headers: { 'X-API-Secret': key },
@@ -80,19 +80,19 @@ export function createRunnerClient() {
         },
 
         /** GET /api/source/{method} → { cpp_code, lua_code } */
-        async getSourceCode(apiKey, method, graph) {
-            const key = assertApiKey(apiKey);
-            const path = `/api/source/${encodeURIComponent(method)}`;
-            const query = `?graph=${encodeURIComponent(graph)}`;
+        async getSourceCode(apiKey, method, graphFile) {
+            const key = requireApiKey(apiKey);
+            const sourcePath = `/api/source/${encodeURIComponent(method)}`;
+            const graphQuery = `?graph=${encodeURIComponent(graphFile)}`;
 
-            return requestJson(`${ENGINE_BASE_URL}${path}${query}`, {
+            return requestJson(`${ENGINE_BASE_URL}${sourcePath}${graphQuery}`, {
                 headers: { 'X-API-Secret': key },
             });
         },
 
         /** POST /api/execute_sequential */
         async executeSequential(apiKey, payload) {
-            const key = assertApiKey(apiKey);
+            const key = requireApiKey(apiKey);
 
             const requestPayload = {
                 cpp_code: payload.cpp_code,
@@ -100,22 +100,23 @@ export function createRunnerClient() {
                 graphml_file: payload.graphml_file || payload.input_file,
             };
 
-            const data = await requestJson(`${ENGINE_BASE_URL}/api/execute_sequential`, {
+            const responseData = await requestJson(`${ENGINE_BASE_URL}/api/execute_sequential`, {
                 method: 'POST',
-                headers: { ...JSON_HEADERS, 'X-API-Secret': key },
+                headers: { ...JSON_CONTENT_HEADERS, 'X-API-Secret': key },
                 body: JSON.stringify(requestPayload),
             });
 
             return {
-                success: Boolean(data.success),
-                message: data.message || '',
+                success: Boolean(responseData.success),
+                message: responseData.message || '',
                 svgs: {
-                    cpp: data.cpp_svg || '',
-                    lua: data.lua_svg || '',
+                    cpp: responseData.cpp_svg || '',
+                    lua: responseData.lua_svg || '',
                 },
-                graphml: {
-                    cpp: data.cpp_graphml || '',
-                    lua: data.lua_graphml || data.graphml || data.graphml_content || '',
+                graphML: {
+                    cpp: responseData.cpp_graphml || '',
+                    lua: responseData.lua_graphml || responseData.graphml ||
+                        responseData.graphml_content || '',
                 },
             };
         },

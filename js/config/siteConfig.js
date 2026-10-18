@@ -2,21 +2,21 @@
  * Single place to configure the page before publishing.
  */
 
-export const RUNNER = {
+export const ENGINE_CONFIG = {
     // Paste the generated API secret key here to pre-fill the demo field.
     // Leave empty to let visitors enter their own key in the demo section instead.
     // Never commit a real key to source control.
     defaultApiKey: '',
 };
 
-export const PARAMS = {
+export const LAYOUT_PARAMETERS = {
     // Thesis Appendix B.1: ParameterDefinitions.json
     layerDistance: { min: 1, max: 100, step: 1, default: 3 },
     nodeDistance: { min: 1, max: 100, step: 1, default: 3 },
 };
 
 /** Guidance rows under "What to compare" — the claims the side-by-side lets a reviewer verify. */
-export const CHECKS = [
+export const COMPARISON_CHECKS = [
     'Same graph topology — identical node and edge sets in both panes.',
     'Same algorithm and parameters — the case pins the OGDF layout call.',
     'Same coordinate semantics — positions returned by the runner, drawn unmodified.',
@@ -24,7 +24,7 @@ export const CHECKS = [
 ];
 
 /** Ordered stages the runner reports while a job progresses. */
-export const STAGES = [
+export const EXECUTION_STAGES = [
     { id: 'queued', label: 'Queued' },
     { id: 'compiling', label: 'Compiling C++' },
     { id: 'running', label: 'Running layout' },
@@ -32,7 +32,7 @@ export const STAGES = [
     { id: 'succeeded', label: 'Done' },
 ];
 
-export const LINKS = [
+export const RESOURCE_LINKS = [
     { label: 'OGDF — Open Graph Drawing Framework', href: 'https://www.ogdf.uni-osnabrueck.de', note: 'C++ framework supplying the layout algorithms' },
     { label: 'sol2', href: 'https://github.com/ThePhD/sol2', note: 'C++/Lua binding library the generated module builds on' },
     { label: 'GAV-VR', href: 'https://github.com/orkhanigidov/gav-vr', note: 'VR graph viewer (Unity/C#)' },
@@ -40,7 +40,7 @@ export const LINKS = [
     { label: 'Thesis PDF', href: 'https://github.com/orkhanigidov/bridge/releases', note: 'Master thesis PDF and test data' },
 ];
 
-export const BIBTEX = `@mastersthesis{igidov2025bridge,
+export const THESIS_BIBTEX = `@mastersthesis{igidov2025bridge,
   author    = {Igidov, Orkhan},
   title     = {Connecting {OGDF} to {GAV-VR} -- Design Concept and Realisation},
   school    = {University of Konstanz},
