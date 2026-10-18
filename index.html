@@ -17,6 +17,14 @@
         href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="assets/css/site.css">
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://esm.msh/three@0.186.1",
+                "three/": "https://esm.sh/three@0.186.1/"
+            }
+        }
+    </script>
 </head>
 
 <body>
@@ -588,11 +596,11 @@
 
     <script type="module">
         try {
-            const [THREE, { default: ForceGraph3D }] = await Promise.all([
-                import('https://cdn.jsdelivr.net/npm/three@0.186.1/+esm'),
-                import('https://cdn.jsdelivr.net/npm/3d-force-graph@1.80.1/+esm'),
-            ]);
+            const THREE = await import('three');
             window.THREE = THREE;
+            const { default: ForceGraph3D } = await import(
+                'https://esm.sh/3d-force-graph@1.80.1?external=three'
+            );
             window.ForceGraph3D = ForceGraph3D;
         } catch (error) {
             document.querySelector('#graph3d-meta').textContent =
