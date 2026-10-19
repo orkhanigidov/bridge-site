@@ -70,25 +70,11 @@ async function requestJson(requestUrl, options = {}) {
 
 export function createEngineClient() {
     return {
-        /** GET /api/discovery → { methods: [], files: [] } */
-        async loadAvailableResources(apiKey) {
-            const key = requireApiKey(apiKey);
+        /** GET /api/discovery is no longer used as we load examples locally */
 
-            return requestJson(`${ENGINE_BASE_URL}/api/discovery`, {
-                headers: { 'X-API-Secret': key },
-            });
-        },
+        /** GET /api/parameters is no longer used as we load examples locally */
 
-        /** GET /api/source/{method} → { cpp_code, lua_code } */
-        async getSourceCode(apiKey, method, graphFile) {
-            const key = requireApiKey(apiKey);
-            const sourcePath = `/api/source/${encodeURIComponent(method)}`;
-            const graphQuery = `?graph=${encodeURIComponent(graphFile)}`;
-
-            return requestJson(`${ENGINE_BASE_URL}${sourcePath}${graphQuery}`, {
-                headers: { 'X-API-Secret': key },
-            });
-        },
+        /** GET /api/source/{method} is no longer used as we load examples locally */
 
         /** POST /api/execute_sequential */
         async executeSequential(apiKey, payload) {
@@ -98,6 +84,7 @@ export function createEngineClient() {
                 cpp_code: payload.cpp_code,
                 lua_code: payload.lua_code,
                 graphml_file: payload.graphml_file || payload.input_file,
+                graphml_name: payload.graphml_name || '',
             };
 
             const responseData = await requestJson(`${ENGINE_BASE_URL}/api/execute_sequential`, {

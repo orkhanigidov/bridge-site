@@ -9,12 +9,6 @@ export const ENGINE_CONFIG = {
     defaultApiKey: '',
 };
 
-export const LAYOUT_PARAMETERS = {
-    // Thesis Appendix B.1: ParameterDefinitions.json
-    layerDistance: { min: 1, max: 100, step: 1, default: 3 },
-    nodeDistance: { min: 1, max: 100, step: 1, default: 3 },
-};
-
 /** Guidance rows under "What to compare" — the claims the side-by-side lets a reviewer verify. */
 export const COMPARISON_CHECKS = [
     'Same graph topology — identical node and edge sets in both panes.',
