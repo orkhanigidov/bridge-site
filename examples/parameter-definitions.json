@@ -1,0 +1,76 @@
+﻿{
+  "layerDistance": {
+    "defaultValue": 30.0,
+    "displayName": "Layer Distance",
+    "description": "The minimal allowed y-distance between layers."
+  },
+  "nodeDistance": {
+    "defaultValue": 25.0,
+    "displayName": "Node Distance",
+    "description": "The minimal allowed x-distance between nodes on a layer.",
+    "minValue": 1.0,
+    "maxValue": 100.0
+  },
+  "weightBalancing": {
+    "defaultValue": 0.8,
+    "displayName": "Weight Balancing",
+    "description": "The weight for balancing successors below a node; 0.0 means no balancing."
+  },
+  "fixedLayer": {
+    "defaultValue": false,
+    "displayName": "Fixed Layer Distance",
+    "description": "If set to true, the distance between neighboured layers is always layerDistance; otherwise the distance is adjusted (increased) to improve readability."
+  },
+  "useHighLevelOptions": {
+    "defaultValue": true,
+    "displayName": "Use High-Level Options",
+    "description": "Whether high-level options are used or not."
+  },
+  "unitEdgeLength": {
+    "defaultValue": 15.0,
+    "displayName": "Unit Edge Length",
+    "description": "The unit edge length."
+  },
+  "newInitialPlacement": {
+    "defaultValue": true,
+    "displayName": "New Initial Placement",
+    "description": "Specifies if initial placement of nodes is varied."
+  },
+  "qualityVersusSpeed": {
+    "defaultValue": "GorgeousAndEfficient",
+    "displayName": "Quality vs Speed",
+    "description": "Indicates if the algorithm is tuned either for best quality or best speed.",
+    "allowedValues": ["GorgeousAndEfficient", "BeautifulAndFast", "NiceAndIncredibleSpeed"]
+  },
+  "nodeSize": {
+    "defaultValue": 5.0,
+    "displayName": "Node Size",
+    "description": ""
+  },
+  "arrangeCCs": {
+    "defaultValue": false,
+    "displayName": "Arrange Connected Components",
+    "description": "If set to true connected components are laid out separately and the resulting layouts are arranged afterwards using the packer module."
+  },
+  "nRuns": {
+    "defaultValue": 100,
+    "displayName": "Number of Runs",
+    "description": "The number of randomized runs performed by the algorithm; the best solution is picked among all the runs. If runs is 0, one deterministic run is performed."
+  },
+  "rrOption": {
+    "defaultValue": "All",
+    "displayName": "Remove-Reinsert Option",
+    "description": "Sets the remove-reinsert postprocessing method.",
+    "allowedValues": ["None", "Inserted", "MostCrossed", "All", "Incremental", "IncInserted"]
+  },
+  "separation": {
+    "defaultValue": 20.0,
+    "displayName": "Separation",
+    "description": "Sets the minimum distance between vertices."
+  },
+  "cOverhang": {
+    "defaultValue": 0.4,
+    "displayName": "Corner Overhang",
+    "description": "Sets the minimal distance of incident edges to the corner of a vertex."
+  }
+}
