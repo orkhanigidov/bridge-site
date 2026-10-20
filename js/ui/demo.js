@@ -33,13 +33,16 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
         parametersEmpty: root.querySelector('#parameters-empty'),
         parametersFileInput: root.querySelector('#file-parameters'),
         paramFileStatus: root.querySelector('#param-file-status'),
-        directSourceFileInput: root.querySelector('#file-direct'),
-        bridgeSourceFileInput: root.querySelector('#file-bridge'),
+        editorModal: root.querySelector('#editor-modal'),
+        editorModalSource: root.querySelector('#editor-modal-source'),
+        editorModalTitle: root.querySelector('#editor-modal-title'),
+        closeEditorButton: root.querySelector('#close-editor'),
         statusMessage: root.querySelector('#status-message'),
         statusJob: root.querySelector('#status-job'),
         checksList: root.querySelector('#checks-list'),
         stagesList: root.querySelector('#stages-list'),
         stagesSummary: root.querySelector('#stages-summary'),
+        panelCase: root.querySelector('#panel-case'),
     };
 
     const codeTabs = initCodeTabs({
@@ -253,7 +256,7 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
     const setBusy = (busy) => {
         elements.loadResourcesButton.disabled = busy;
         elements.executeButton.disabled = busy;
-        elements.executeButton.textContent = busy ? 'Executing…' : 'Execute';
+        elements.executeButton.textContent = busy ? 'Executing…' : 'Execute script';
     };
 
     /* ---- output panels and path switches ---- */
@@ -319,10 +322,10 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
         const graphFile = elements.graphSelect.value;
         if (!method || !graphFile) return;
 
-        // Only warn if the user has uploaded a custom file or manually edited the code.
-        // If the code was loaded from a layout method, we allow switching without confirmation.
+        // Only warn if the user has pasted custom code. If the code was loaded
+        // from a layout method, we allow switching without confirmation.
         if (state.isCustomCode && (elements.sourceDirect.value.trim() || elements.sourceBridge.value.trim())) {
-            const confirmed = confirm('You have uploaded custom code. Replacing it with the layout method source will delete your changes. Continue?');
+            const confirmed = confirm('You have custom code. Replacing it with the layout method source will delete your changes. Continue?');
             if (!confirmed) return;
         }
 
@@ -420,9 +423,8 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
             // Show the panels now that the API key is provided
             const apiKeyField = elements.apiKeyInput.closest('.api-key-field');
             if (apiKeyField) apiKeyField.hidden = true;
-            
-            const panelCase = document.getElementById('panel-case');
-            if (panelCase) panelCase.hidden = false;
+
+            if (elements.panelCase) elements.panelCase.hidden = false;
             
             // Try to load ParameterDefinitions.json (localStorage first, then the example file).
             const parametersLoaded = await parameterForm.ensureLoaded();
@@ -562,30 +564,13 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
 
     /* ---- custom sources ---- */
 
-    function bindSourceFileInput(input, textarea, sourceType) {
-        input.addEventListener('change', async () => {
-            const file = input.files?.[0];
-            if (file) {
-                textarea.value = await file.text();
-                codeTabs.setSource(sourceType, textarea.value);
-                state.isCustomCode = true;
-                // Parameter fields follow the pasted script's `_id` references.
-                if (sourceType === 'bridge') {
-                    parameterAnchors.clear();
-                    await parameterForm.setLuaSource(textarea.value, { resetSubstitutions: true });
-                    injectVisibleDefaults();
-                    syncParametersUI();
-                }
-            }
-            input.value = '';
-        });
-    }
-
     elements.sourceDirect.addEventListener('input', () => {
+        state.isCustomCode = true;
         codeTabs.setSource('direct', elements.sourceDirect.value);
     });
 
     elements.sourceBridge.addEventListener('input', () => {
+        state.isCustomCode = true;
         codeTabs.setSource('bridge', elements.sourceBridge.value);
         // Live re-scan on manual edits. Fields already substituted into the code
         // stay visible (sticky), so editing injected literals keeps them usable.
@@ -596,8 +581,80 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
         }, 300);
     });
 
-    bindSourceFileInput(elements.directSourceFileInput, elements.sourceDirect, 'direct');
-    bindSourceFileInput(elements.bridgeSourceFileInput, elements.sourceBridge, 'bridge');
+    /* ---- source editor modal ---- */
+
+    const editorState = { target: null };
+    const editorGutter = root.querySelector('#editor-modal-gutter');
+    const editorStatus = root.querySelector('#editor-modal-status');
+
+    function renderEditorChrome() {
+        const value = elements.editorModalSource.value;
+        const lines = value.split('\n').length;
+        if (editorGutter) {
+            editorGutter.textContent = Array.from({ length: lines }, (_, index) => index + 1).join('\n');
+            editorGutter.scrollTop = elements.editorModalSource.scrollTop;
+        }
+        if (editorStatus) {
+            editorStatus.textContent =
+                `${lines} ${lines === 1 ? 'line' : 'lines'} · ${value.length} characters`;
+        }
+    }
+
+    for (const button of root.querySelectorAll('[data-expand]')) {
+        button.addEventListener('click', () => {
+            const target = root.querySelector(`#${button.dataset.expand}`);
+            if (!target || !elements.editorModal || !elements.editorModalSource) return;
+            editorState.target = target;
+            if (elements.editorModalTitle) {
+                elements.editorModalTitle.textContent =
+                    root.querySelector(`label[for="${button.dataset.expand}"]`)?.textContent || 'Editor';
+            }
+            elements.editorModalSource.value = target.value;
+            renderEditorChrome();
+            elements.editorModal.showModal();
+            elements.editorModalSource.focus();
+        });
+    }
+
+    elements.editorModalSource?.addEventListener('input', renderEditorChrome);
+    elements.editorModalSource?.addEventListener('scroll', () => {
+        if (editorGutter) editorGutter.scrollTop = elements.editorModalSource.scrollTop;
+    });
+    // Tab inserts two spaces instead of moving focus out of the editor.
+    elements.editorModalSource?.addEventListener('keydown', (event) => {
+        if (event.key !== 'Tab') return;
+        event.preventDefault();
+        const { selectionStart, selectionEnd, value } = elements.editorModalSource;
+        elements.editorModalSource.value = `${value.slice(0, selectionStart)}  ${value.slice(selectionEnd)}`;
+        elements.editorModalSource.selectionStart = elements.editorModalSource.selectionEnd = selectionStart + 2;
+        renderEditorChrome();
+    });
+
+    function applyEditorToTarget() {
+        const target = editorState.target;
+        if (!target || !elements.editorModalSource) return;
+        if (target.value !== elements.editorModalSource.value) {
+            target.value = elements.editorModalSource.value;
+            // The field's own listeners keep the code view, custom-code flag,
+            // and Lua parameter scan in sync — once, on Apply.
+            target.dispatchEvent(new Event('input'));
+        }
+    }
+
+    elements.closeEditorButton?.addEventListener('click', () => elements.editorModal?.close());
+    root.querySelector('#editor-apply')?.addEventListener('click', () => {
+        applyEditorToTarget();
+        elements.editorModal?.close();
+    });
+    root.querySelector('#editor-cancel')?.addEventListener('click', () => elements.editorModal?.close());
+    // Click on the backdrop closes the modal.
+    elements.editorModal?.addEventListener('click', (event) => {
+        if (event.target === elements.editorModal) elements.editorModal.close();
+    });
+    // Closing without Apply discards the pending edit.
+    elements.editorModal?.addEventListener('close', () => {
+        editorState.target = null;
+    });
 
     renderSvgOutput('');
 }

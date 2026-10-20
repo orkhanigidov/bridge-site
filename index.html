@@ -144,22 +144,54 @@
                         <div class="editor">
                             <div class="editor-head">
                                 <label class="label" for="source-direct">C++ (direct OGDF)</label>
-                                <label class="upload" for="file-direct">Upload .cpp<input id="file-direct" type="file"
-                                        accept=".cpp,.cc,.cxx,.h,.hpp,.txt"></label>
+                                <button type="button" class="expand-btn" data-expand="source-direct"
+                                    aria-haspopup="dialog" title="Open a larger editor for this source">Expand</button>
                             </div>
-                            <textarea id="source-direct" spellcheck="false"
-                                placeholder="Paste the C++ code for direct OGDF execution…"></textarea>
+                            <textarea id="source-direct" spellcheck="false" readonly
+                                title="Read-only preview — use Expand to edit"
+                                placeholder="Read-only preview of the C++ source — use Expand to edit."></textarea>
                         </div>
                         <div class="editor">
                             <div class="editor-head">
                                 <label class="label" for="source-bridge">Lua script (via BRIDGE)</label>
-                                <label class="upload" for="file-bridge">Upload .lua<input id="file-bridge" type="file"
-                                        accept=".lua,.txt"></label>
+                                <button type="button" class="expand-btn" data-expand="source-bridge"
+                                    aria-haspopup="dialog" title="Open a larger editor for this source">Expand</button>
                             </div>
-                            <textarea id="source-bridge" spellcheck="false"
-                                placeholder="Paste the Lua script for execution through BRIDGE…"></textarea>
+                            <textarea id="source-bridge" spellcheck="false" readonly
+                                title="Read-only preview — use Expand to edit"
+                                placeholder="Read-only preview of the Lua script — use Expand to edit."></textarea>
                         </div>
                     </div>
+
+                    <!-- Source editor modal: opened from the Expand button on each editor.
+                         Edits are applied to the source field only on Apply. -->
+                    <dialog id="editor-modal" class="editor-modal" aria-labelledby="editor-modal-title">
+                        <div class="modal-head">
+                            <div class="modal-heading">
+                                <div>
+                                    <h3 id="editor-modal-title">Editor</h3>
+                                    <p class="modal-sub">Edits apply to the source when you choose Apply.</p>
+                                </div>
+                            </div>
+                            <button type="button" id="close-editor" class="modal-close"
+                                aria-label="Close editor">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="code-editor">
+                                <pre id="editor-modal-gutter" class="code-editor-gutter" aria-hidden="true">1</pre>
+                                <textarea id="editor-modal-source" spellcheck="false" wrap="off"
+                                    aria-label="Source code"></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-foot">
+                            <span id="editor-modal-status" class="code-editor-status"></span>
+                            <div class="modal-actions">
+                                <button type="button" id="editor-cancel" class="btn">Cancel</button>
+                                <button type="button" id="editor-apply" class="btn btn--primary">Apply</button>
+                            </div>
+                        </div>
+                    </dialog>
+
                     <div class="custom-foot">
                         <p class="mode-note">Both sources are sent to the Engine for execution via
                             <code>/api/execute_script</code>. The Engine enforces a whitelist sandbox — only

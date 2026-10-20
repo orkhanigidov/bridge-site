@@ -383,7 +383,7 @@ code {
 }
 
 /* Focus visible - unified token-based */
-:where(.btn, .tab, .stepper-button, .upload, .copy-btn, .nav-link, .brand):focus-visible {
+:where(.btn, .tab, .stepper-button, .copy-btn, .nav-link, .brand, .expand-btn):focus-visible {
     outline: var(--focus-ring, 2px solid #0f766e);
     outline-offset: var(--focus-offset, 2px);
 }
@@ -395,13 +395,6 @@ textarea:focus-visible,
 summary:focus-visible {
     outline: var(--focus-ring, 2px solid #0f766e);
     outline-offset: var(--focus-offset, 2px);
-}
-
-/* Additional focus for elements that need it */
-.upload:focus-within {
-    outline: var(--focus-ring, 2px solid #0f766e);
-    outline-offset: var(--focus-offset, 2px);
-    border-radius: var(--radius, 2px);
 }
 
 /* ============ demo section ============ */
@@ -701,38 +694,6 @@ summary:focus-visible {
     justify-content: space-between;
     gap: 1rem;
     margin-bottom: 0.5rem;
-}
-
-.upload {
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: var(--accent-deep, #134e4a);
-    text-decoration: underline;
-    text-underline-offset: 4px;
-    cursor: pointer;
-    transition: color var(--transition-fast, 0.15s ease);
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.25rem 0.5rem;
-    border-radius: var(--radius, 2px);
-}
-
-.upload:hover {
-    color: var(--accent, #0f766e);
-    background: var(--accent-soft, #ccfbf1);
-}
-
-.upload:focus-within {
-    outline: var(--focus-ring, 2px solid #0f766e);
-    outline-offset: var(--focus-offset, 2px);
-}
-
-.upload input {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    opacity: 0;
 }
 
 .editor textarea {
@@ -1949,7 +1910,8 @@ summary:focus-visible {
     text-align: center;
 }
 
-.parameters-modal {
+.parameters-modal,
+.editor-modal {
     display: flex;
     flex-direction: column;
     width: min(46rem, calc(100vw - 2rem));
@@ -1965,13 +1927,21 @@ summary:focus-visible {
         0 24px 48px -16px rgba(28, 25, 23, 0.28);
 }
 
+.editor-modal {
+    width: min(64rem, calc(100vw - 2rem));
+    height: min(52rem, calc(100vh - 2rem));
+    height: min(52rem, calc(100dvh - 2rem));
+}
+
 /* Keep a closed dialog actually hidden: the display:flex above would
    otherwise override the UA's hidden state for non-open dialogs. */
-.parameters-modal:not([open]) {
+.parameters-modal:not([open]),
+.editor-modal:not([open]) {
     display: none;
 }
 
-.parameters-modal::backdrop {
+.parameters-modal::backdrop,
+.editor-modal::backdrop {
     background: rgba(28, 25, 23, 0.45);
     backdrop-filter: blur(2px);
     animation: modal-backdrop-in var(--transition-fast, 0.15s ease) ease-out;
@@ -1987,7 +1957,8 @@ summary:focus-visible {
     }
 }
 
-.parameters-modal[open] {
+.parameters-modal[open],
+.editor-modal[open] {
     animation: modal-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) ease-out;
 }
 
@@ -2079,6 +2050,104 @@ summary:focus-visible {
     overscroll-behavior: contain;
     scrollbar-width: thin;
     scrollbar-color: var(--line-strong, #a8a29e) transparent;
+}
+
+.editor-modal .modal-body {
+    display: flex;
+    flex: 1 1 auto;
+    padding: 1rem 1.5rem;
+}
+
+.code-editor {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    background: #1c1917;
+    border: 1px solid var(--line-strong, #a8a29e);
+    border-radius: var(--radius, 2px);
+    overflow: hidden;
+}
+
+.code-editor:focus-within {
+    outline: var(--focus-ring, 2px solid #0f766e);
+    outline-offset: 2px;
+}
+
+.code-editor textarea,
+.code-editor-gutter {
+    font: 0.8125rem/1.5 var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    tab-size: 2;
+}
+
+.code-editor-gutter {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 1rem 0.75rem 1rem 1rem;
+    min-width: 3rem;
+    text-align: right;
+    color: #78716c;
+    background: #292524;
+    overflow: hidden;
+    user-select: none;
+}
+
+.code-editor textarea {
+    flex: 1 1 auto;
+    width: 100%;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    padding: 1rem;
+    color: #e7e5e4;
+    caret-color: #5eead4;
+    resize: none;
+    white-space: pre;
+    overflow: auto;
+}
+
+.code-editor textarea:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+
+.editor-modal .modal-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--line, #d6d3d1);
+    background: var(--paper, #fafaf9);
+}
+
+.code-editor-status {
+    font-size: 0.75rem;
+    color: var(--ink-mute, #57534e);
+    font-variant-numeric: tabular-nums;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+
+.expand-btn {
+    appearance: none;
+    padding: 0.25rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--accent-deep, #134e4a);
+    background: var(--panel, #ffffff);
+    border: 1px solid var(--line-strong, #a8a29e);
+    border-radius: var(--radius, 2px);
+    cursor: pointer;
+    transition: color var(--transition-fast, 0.15s ease), border-color var(--transition-fast, 0.15s ease), background-color var(--transition-fast, 0.15s ease);
+}
+
+.expand-btn:hover {
+    border-color: var(--accent, #0f766e);
+    background: var(--accent-soft, #ccfbf1);
 }
 
 .param-empty {
