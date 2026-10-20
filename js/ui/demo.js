@@ -6,10 +6,10 @@
 import {
     COMPARISON_CHECKS,
     EXECUTION_STAGES,
-    LAYOUT_PARAMETERS,
 } from '../config/siteConfig.js';
 import { initCodeTabs } from './codeTabs.js';
 import { renderSvgGraph } from './svgGraphViewer.js';
+import { createParameterForm } from './parameters.js';
 
 const EXECUTION_PATH_LABELS = { cpp: 'C++ direct', lua: 'Lua · via BRIDGE' };
 
@@ -25,11 +25,14 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
         svgOutput: root.querySelector('#svg-output'),
         svgSwitch: root.querySelector('#svg-switch'),
         graphMLSwitch: root.querySelector('#graphml-switch'),
-        layerDistanceInput: root.querySelector('#layer-distance'),
-        layerDistanceValue: root.querySelector('#layer-distance-value'),
-        nodeDistanceDecreaseButton: root.querySelector('#node-distance-decrease'),
-        nodeDistanceIncreaseButton: root.querySelector('#node-distance-increase'),
-        nodeDistanceValue: root.querySelector('#node-distance-value'),
+        parametersContainer: root.querySelector('#layout-parameters'),
+        parametersModal: root.querySelector('#parameters-modal'),
+        openParametersButton: root.querySelector('#open-parameters'),
+        closeParametersButton: root.querySelector('#close-parameters'),
+        parametersCount: root.querySelector('#parameters-count'),
+        parametersEmpty: root.querySelector('#parameters-empty'),
+        parametersFileInput: root.querySelector('#file-parameters'),
+        paramFileStatus: root.querySelector('#param-file-status'),
         directSourceFileInput: root.querySelector('#file-direct'),
         bridgeSourceFileInput: root.querySelector('#file-bridge'),
         statusMessage: root.querySelector('#status-message'),
@@ -44,6 +47,133 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
         tabBridge: root.querySelector('#tab-lua'),
         codeView: root.querySelector('#code-view'),
     });
+
+    const PARAM_DEFS_STORAGE_KEY = 'bridge_parameter_definitions';
+
+    // Field edits write literals back into the Lua source, anchored on the `_id` token.
+    const parameterAnchors = new Map(); // id -> { literal, offset } of the last injection
+
+    // Definitions: last uploaded file from localStorage, else the example file.
+    const parameterForm = createParameterForm(elements.parametersContainer, {
+        fetchDefinitions: async () => {
+            // Try to load from localStorage first
+            const stored = localStorage.getItem(PARAM_DEFS_STORAGE_KEY);
+            if (stored) {
+                try {
+                    return JSON.parse(stored);
+                } catch {
+                    localStorage.removeItem(PARAM_DEFS_STORAGE_KEY);
+                }
+            }
+
+            // Else fetch the example file (relative path: works under a subpath too).
+            try {
+                const response = await fetch('examples/parameter-definitions.json', { cache: 'no-store' });
+                if (!response.ok) throw new Error();
+                
+                // Use text() first to handle UTF-8 BOM if it exists
+                const text = await response.text();
+                return JSON.parse(text.replace(/^\uFEFF/, ''));
+            } catch {
+                throw new Error('No parameter definitions available. Please upload a ParameterDefinitions.json file.');
+            }
+        },
+        onValueChange: (id, value) => {
+            if (!writeParameterValue(id, value)) {
+                // Values live only in the Lua source; a failed write loses them.
+                setStatus(`Could not write _${id} into the Lua code — the change will not take effect.`);
+            }
+        },
+    });
+
+    function updateParamFileStatus(name) {
+        if (elements.paramFileStatus) {
+            elements.paramFileStatus.textContent = name || 'No file loaded';
+        }
+    }
+
+    // Keep the toolbar badge and modal empty state in sync with the visible fields.
+    function syncParametersUI() {
+        const count = parameterForm.getVisibleCount();
+        if (elements.parametersCount) {
+            elements.parametersCount.textContent = String(count);
+            elements.parametersCount.hidden = count === 0;
+        }
+        if (elements.parametersEmpty) elements.parametersEmpty.hidden = count > 0;
+    }
+
+    if (elements.openParametersButton) {
+        elements.openParametersButton.addEventListener('click', () => {
+            syncParametersUI();
+            elements.parametersModal?.showModal();
+        });
+    }
+    elements.closeParametersButton?.addEventListener('click', () => elements.parametersModal?.close());
+    // Click on the backdrop closes the modal.
+    elements.parametersModal?.addEventListener('click', (event) => {
+        if (event.target === elements.parametersModal) elements.parametersModal.close();
+    });
+
+    // Debounced re-scan of the Lua textarea while the user types.
+    let parameterScanTimer = 0;
+
+    /** Lua literal for a parameter value: numbers and booleans bare, strings
+     *  as bare identifiers (e.g. BeautifulAndFast) — the engine resolves
+     *  enum-style names itself, so no quotes are written into the code. */
+    function formatLuaLiteral(value) {
+        if (typeof value === 'string') return value;
+        if (typeof value === 'boolean') return value ? 'true' : 'false';
+        return String(value);
+    }
+
+    /** Write a value into the Lua textarea, anchored on the `_id` token (or on
+     *  the literal injected before, matched nearest its recorded offset — so a
+     *  number that also occurs elsewhere is never touched). True on success. */
+    function writeParameterValue(id, value) {
+        if (value === null || value === undefined) return false;
+        const literal = formatLuaLiteral(value);
+        let source = elements.sourceBridge.value;
+        let injectedAt = -1;
+
+        const tokenPattern = new RegExp(`(^|[^A-Za-z0-9_])_${id}(?![A-Za-z0-9_])`);
+        const tokenMatch = tokenPattern.exec(source);
+        if (tokenMatch) {
+            const tokenStart = tokenMatch.index + tokenMatch[1].length;
+            source = source.slice(0, tokenStart) + literal
+                + source.slice(tokenStart + id.length + 1);
+            injectedAt = tokenStart;
+        } else {
+            const anchor = parameterAnchors.get(id);
+            if (!anchor) return false;
+            if (anchor.literal === literal) return true; // already that value
+            let best = -1;
+            let bestDistance = Infinity;
+            for (let at = source.indexOf(anchor.literal); at !== -1; at = source.indexOf(anchor.literal, at + 1)) {
+                const distance = Math.abs(at - anchor.offset);
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    best = at;
+                }
+            }
+            if (best === -1) return false;
+            source = source.slice(0, best) + literal + source.slice(best + anchor.literal.length);
+            injectedAt = best;
+        }
+
+        elements.sourceBridge.value = source;
+        codeTabs.setSource('bridge', source);
+        parameterAnchors.set(id, { literal, offset: injectedAt });
+        parameterForm.markSubstituted(id);
+        return true;
+    }
+
+    /** Write the current values of visible parameters into the Lua source. */
+    function injectVisibleDefaults() {
+        const values = parameterForm.getValues();
+        for (const [id, value] of Object.entries(values)) {
+            writeParameterValue(id, value);
+        }
+    }
 
     const state = {
         isCustomCode: false,
@@ -65,12 +195,6 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
     elements.apiKeyInput.addEventListener('input', () => {
         localStorage.setItem(API_KEY_STORAGE_KEY, elements.apiKeyInput.value);
     });
-
-    // The key input stays visible until the Engine accepts the key.
-    function setApiKeyFieldVisible(visible) {
-        const container = elements.apiKeyInput.closest('.api-key-field');
-        if (container) container.hidden = !visible;
-    }
 
     /* ---- static panels ---- */
 
@@ -118,7 +242,7 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
         }
     }
 
-    /* ---- status, busy state, params ---- */
+    /* ---- status and busy state ---- */
 
     const setStatus = (message, jobState = '') => {
         elements.statusMessage.textContent = message;
@@ -131,29 +255,6 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
         elements.executeButton.disabled = busy;
         elements.executeButton.textContent = busy ? 'Executing…' : 'Execute';
     };
-
-    function updateLayerDistanceValue() {
-        elements.layerDistanceValue.textContent = elements.layerDistanceInput.value;
-    }
-
-    elements.layerDistanceInput.addEventListener('input', updateLayerDistanceValue);
-    elements.nodeDistanceDecreaseButton.addEventListener('click', () => {
-        const nodeDistance = Math.max(
-            LAYOUT_PARAMETERS.nodeDistance.min,
-            Number(elements.nodeDistanceValue.textContent) - LAYOUT_PARAMETERS.nodeDistance.step,
-        );
-        elements.nodeDistanceValue.textContent = String(nodeDistance);
-        elements.nodeDistanceValue.setAttribute('aria-valuenow', String(nodeDistance));
-    });
-    elements.nodeDistanceIncreaseButton.addEventListener('click', () => {
-        const nodeDistance = Math.min(
-            LAYOUT_PARAMETERS.nodeDistance.max,
-            Number(elements.nodeDistanceValue.textContent) + LAYOUT_PARAMETERS.nodeDistance.step,
-        );
-        elements.nodeDistanceValue.textContent = String(nodeDistance);
-        elements.nodeDistanceValue.setAttribute('aria-valuenow', String(nodeDistance));
-    });
-    updateLayerDistanceValue();
 
     /* ---- output panels and path switches ---- */
 
@@ -202,6 +303,17 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
 
     /* ---- case loading ---- */
 
+    /** Resolve `__input__`/`__output__`/`__output_svg__` to real file literals:
+     *  the selected GraphML, `<name>-layout.graphml`, `<name>-layout.svg`. */
+    function substituteGraphPaths(source, graphName) {
+        if (!source || !graphName) return source;
+        const baseName = graphName.replace(/\.graphml$/i, '');
+        return source
+            .replaceAll('__output_svg__', `"${baseName}-layout.svg"`)
+            .replaceAll('__output__', `"${baseName}-layout.graphml"`)
+            .replaceAll('__input__', `"${graphName}"`);
+    }
+
     async function loadSelectedSource() {
         const method = elements.methodSelect.value;
         const graphFile = elements.graphSelect.value;
@@ -217,37 +329,68 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
         try {
             setBusy(true);
             setStatus(`Fetching source for ${method} with ${graphFile}...`);
-            const source = await engineClient.getSourceCode(elements.apiKeyInput.value, method, graphFile);
 
-            const cppCode = source.cpp_code || source.cpp || '';
-            const luaCode = source.lua_code || source.lua || '';
+            // Example sources — never serve a stale cached copy.
+            const cppCode = await fetch(`examples/cpp/${method}.cpp`, { cache: 'no-store' }).then(r => r.text()).catch(() => '');
+            const luaCode = await fetch(`examples/lua/${method}.lua`, { cache: 'no-store' }).then(r => r.text()).catch(() => '');
 
-            elements.sourceDirect.value = cppCode;
-            elements.sourceBridge.value = luaCode;
+            // Resolve __input__/__output__ against the selected GraphML file.
+            elements.sourceDirect.value = substituteGraphPaths(cppCode, graphFile);
+            elements.sourceBridge.value = substituteGraphPaths(luaCode, graphFile);
 
-            // Reset isCustomCode because we just loaded a predefined layout method
+            // Predefined source: no longer custom code.
             state.isCustomCode = false;
 
             codeTabs.setSource('direct', elements.sourceDirect.value);
             codeTabs.setSource('bridge', elements.sourceBridge.value);
-
+            // Fresh script: forget field→code injections from the previous one.
+            parameterAnchors.clear();
+            // Show fields only for the `_id` parameters this script references.
+            const parametersShown = await parameterForm.setLuaSource(elements.sourceBridge.value, { resetSubstitutions: true });
+            if (parametersShown) injectVisibleDefaults();
+            syncParametersUI();
             setBusy(false);
-            setStatus('Source code loaded. Ready to execute.');
+            setStatus(parametersShown
+                ? `Source code loaded — ${parameterForm.getVisibleCount()} parameters under “Layout Parameters”.`
+                : 'Source code loaded. Parameter fields need ParameterDefinitions.json — upload it under the selects.');
         } catch (error) {
             setBusy(false);
             setStatus(`Error fetching source: ${error.message}`);
         }
     }
 
-    elements.methodSelect.addEventListener('change', () => loadSelectedSource());
-    elements.graphSelect.addEventListener('change', () => loadSelectedSource());
+    elements.methodSelect.addEventListener('change', async () => {
+        // If a graph is already selected, load the source and show parameters immediately
+        if (elements.graphSelect.value) {
+            await loadSelectedSource();
+        }
+    });
+    elements.graphSelect.addEventListener('change', async () => {
+        // If a method is already selected, load the source and show parameters immediately
+        if (elements.methodSelect.value) {
+            await loadSelectedSource();
+        }
+    });
 
     async function loadResources() {
         try {
             setBusy(true);
-            setStatus('Loading resources from the Engine…');
-            const data = await engineClient.loadAvailableResources(elements.apiKeyInput.value);
-            const { methods, files } = data;
+            setStatus('Loading resources from the examples folder…');
+            
+            // Fixed example list served from the repo.
+            const methods = [
+                'energybased',
+                'hierarchical',
+                'hierarchical-ranking',
+                'orthogonal',
+                'pivotmds'
+            ];
+            const files = [
+                'Cube.graphml',
+                'Mesh.graphml',
+                'n1000e1000.graphml',
+                'n100e100.graphml'
+            ];
 
             elements.methodSelect.textContent = '';
             const methodPlaceholder = document.createElement('option');
@@ -265,28 +408,33 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
             elements.graphSelect.textContent = '';
             const graphPlaceholder = document.createElement('option');
             graphPlaceholder.value = '';
-            graphPlaceholder.textContent = files && files.length ? 'Pick an input graph…' : 'No GraphML files returned';
+            graphPlaceholder.textContent = 'Pick an input graph…';
             elements.graphSelect.append(graphPlaceholder);
-            if (files) {
-                for (const name of files) {
-                    const option = document.createElement('option');
-                    option.value = name;
-                    option.textContent = name;
-                    elements.graphSelect.append(option);
-                }
+            for (const name of files) {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                elements.graphSelect.append(option);
             }
 
+            // Show the panels now that the API key is provided
+            const apiKeyField = elements.apiKeyInput.closest('.api-key-field');
+            if (apiKeyField) apiKeyField.hidden = true;
+            
+            const panelCase = document.getElementById('panel-case');
+            if (panelCase) panelCase.hidden = false;
+            
+            // Try to load ParameterDefinitions.json (localStorage first, then the example file).
+            const parametersLoaded = await parameterForm.ensureLoaded();
+            if (parametersLoaded) updateParamFileStatus('Example defaults');
+            syncParametersUI();
             setBusy(false);
-            // The Engine accepted the key — hide the input field.
-            setApiKeyFieldVisible(false);
-            setStatus('Resources loaded from the Engine. Pick a method and a graph to see the source code.');
+            setStatus(parametersLoaded
+                ? 'Resources loaded from examples. Pick a method and a graph to see the source code.'
+                : 'Resources loaded from examples, but ParameterDefinitions.json could not be fetched — upload it under the selects.');
         } catch (error) {
             setBusy(false);
             setStatus(`Could not load resources: ${error.message}`);
-            // Invalid or rejected key: clear the secret and keep the input visible.
-            elements.apiKeyInput.value = '';
-            localStorage.removeItem(API_KEY_STORAGE_KEY);
-            setApiKeyFieldVisible(true);
         }
     }
 
@@ -297,6 +445,38 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
         loadResources();
     }
 
+    // Initial parameter status from localStorage
+    if (localStorage.getItem(PARAM_DEFS_STORAGE_KEY)) {
+        updateParamFileStatus('Stored definitions');
+    }
+
+    /* ---- manual ParameterDefinitions.json upload ---- */
+
+    elements.parametersFileInput.addEventListener('change', async () => {
+        const file = elements.parametersFileInput.files?.[0];
+        if (!file) return;
+        try {
+            // The repo's ParameterDefinitions.json starts with a UTF-8 BOM, which
+            // JSON.parse rejects ("Unexpected token '\ufeff'") — strip it first.
+            const text = (await file.text()).replace(/^\uFEFF/, '');
+            const applied = parameterForm.setDefinitions(JSON.parse(text));
+            if (applied > 0) {
+                localStorage.setItem(PARAM_DEFS_STORAGE_KEY, text);
+                updateParamFileStatus(file.name);
+                await parameterForm.setLuaSource(elements.sourceBridge.value);
+                injectVisibleDefaults();
+                syncParametersUI();
+                const shown = parameterForm.getVisibleCount();
+                setStatus(`Loaded ${applied} definition${applied === 1 ? '' : 's'} from ${file.name} — ${shown} field${shown === 1 ? '' : 's'} active; default values written into the script.`);
+            } else {
+                setStatus(`${file.name} holds no parameter definitions — expected an object mapping ids to definitions (or { "parameters": { … } }).`);
+            }
+        } catch (error) {
+            setStatus(`Could not read ${file.name}: ${error.message}`);
+        }
+        elements.parametersFileInput.value = '';
+    });
+
     /* ---- executing ---- */
 
     async function executeScript() {
@@ -304,7 +484,7 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
         const graphName = elements.graphSelect.value;
 
         if (!graphName) {
-            setStatus('Pick an input GraphML file first — the Engine uses it to resolve __input__.');
+            setStatus('Pick an input GraphML file first — its name replaces __input__ in the code.');
             return;
         }
         if (!elements.sourceDirect.value.trim()) {
@@ -316,14 +496,29 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
             return;
         }
 
-        const payload = {
-            cpp_code: elements.sourceDirect.value,
-            lua_code: elements.sourceBridge.value,
-            input_file: graphName,
-        };
-
         try {
             setBusy(true);
+            setStatus(`Fetching GraphML content for ${graphName}...`);
+
+            // Custom code may still hold placeholders — resolve before sending.
+            elements.sourceDirect.value = substituteGraphPaths(elements.sourceDirect.value, graphName);
+            elements.sourceBridge.value = substituteGraphPaths(elements.sourceBridge.value, graphName);
+            codeTabs.setSource('direct', elements.sourceDirect.value);
+            codeTabs.setSource('bridge', elements.sourceBridge.value);
+
+            // Fetch the GraphML content.
+            const graphMLContent = await fetch(`examples/graphml/${graphName}`, { cache: 'no-store' }).then(r => {
+                if (!r.ok) throw new Error(`Could not fetch GraphML file: ${graphName}`);
+                return r.text();
+            });
+
+            const payload = {
+                cpp_code: elements.sourceDirect.value,
+                lua_code: elements.sourceBridge.value,
+                graphml_file: graphMLContent,
+                graphml_name: graphName,
+            };
+
             state.svgs = { cpp: '', lua: '' };
             state.graphML = { cpp: '', lua: '' };
             refreshSwitches();
@@ -336,7 +531,7 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
 
             const result = await engineClient.executeSequential(apiKey, payload);
 
-            renderStages(EXECUTION_STAGES.map((stage) => stage.id).reduce((set, id) => set.add(id), new Set()), null);
+            renderStages(new Set(EXECUTION_STAGES.map((stage) => stage.id)), null);
             elements.stagesSummary.hidden = false;
             elements.stagesSummary.textContent = 'custom script · succeeded';
 
@@ -374,6 +569,13 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
                 textarea.value = await file.text();
                 codeTabs.setSource(sourceType, textarea.value);
                 state.isCustomCode = true;
+                // Parameter fields follow the pasted script's `_id` references.
+                if (sourceType === 'bridge') {
+                    parameterAnchors.clear();
+                    await parameterForm.setLuaSource(textarea.value, { resetSubstitutions: true });
+                    injectVisibleDefaults();
+                    syncParametersUI();
+                }
             }
             input.value = '';
         });
@@ -382,9 +584,18 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
     elements.sourceDirect.addEventListener('input', () => {
         codeTabs.setSource('direct', elements.sourceDirect.value);
     });
+
     elements.sourceBridge.addEventListener('input', () => {
         codeTabs.setSource('bridge', elements.sourceBridge.value);
+        // Live re-scan on manual edits. Fields already substituted into the code
+        // stay visible (sticky), so editing injected literals keeps them usable.
+        clearTimeout(parameterScanTimer);
+        parameterScanTimer = setTimeout(() => {
+            parameterForm.setLuaSource(elements.sourceBridge.value);
+            syncParametersUI();
+        }, 300);
     });
+
     bindSourceFileInput(elements.directSourceFileInput, elements.sourceDirect, 'direct');
     bindSourceFileInput(elements.bridgeSourceFileInput, elements.sourceBridge, 'bridge');
 

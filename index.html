@@ -81,10 +81,10 @@
                 <div class="demo-head">
                     <div>
                         <p class="eyebrow">Live comparison</p>
-                        <h2>One case, two paths, side by side</h2>
+                        <h2 class="demo-title">One case, two paths, side by side</h2>
                         <p class="lead">Connect the Engine and pick a predefined C++/Lua pair, or paste your own.
-                                Pane A fills only after the Engine returns graph data; pane B explores the parsed GraphML
-                                in an interactive 3D view while preserving its original layout coordinates.</p>
+                            Pane A fills only after the Engine returns graph data; pane B explores the parsed GraphML
+                            in an interactive 3D view while preserving its original layout coordinates.</p>
                     </div>
                     <div class="api-key-field">
                         <label class="label" for="api-key">API secret key</label>
@@ -100,47 +100,45 @@
                     <p class="mode-note">The live demo requires JavaScript. All other sections work without it.</p>
                 </noscript>
 
-                <div id="panel-case" class="mode-panel">
+                <div id="panel-case" class="mode-panel" hidden>
                     <div class="control-row">
                         <div class="control">
                             <label class="label" for="method-select">Layout Method</label>
                             <select id="method-select">
-                                <option value="">Connect the Engine to load methods</option>
+                                <option value="">Pick a layout method…</option>
                             </select>
                         </div>
                         <div class="control">
                             <label class="label" for="graph-select">GraphML File</label>
                             <select id="graph-select">
-                                <option value="">Connect the Engine to load graphs</option>
+                                <option value="">Pick an input graph…</option>
                             </select>
+                        </div>
+                        <div class="control" id="parameters-upload">
+                            <label class="label">ParameterDefinitions.json</label>
+                            <div class="param-select-group">
+                                <div id="param-file-status" class="param-file-status">No file loaded</div>
+                                <label class="param-upload-btn">
+                                    Upload
+                                    <input type="file" id="file-parameters" accept=".json,application/json"
+                                        style="display:none">
+                                </label>
+                                <a href="examples/parameter-definitions.json" download class="param-download"
+                                    title="Download default ParameterDefinitions.json">
+                                    Download default
+                                </a>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="params-row" id="params-row" hidden>
-                        <div class="control">
-                            <label class="label" for="layer-distance">Layer distance</label>
-                            <div class="control-row">
-                                <input type="range" id="layer-distance" min="1" max="100" step="1" value="3">
-                                <span class="control-value" id="layer-distance-value">3</span>
-                            </div>
-                        </div>
-                        <div class="control">
-                            <label class="label" id="node-distance-label">Node distance</label>
-                            <div class="control-row">
-                                <div class="stepper">
-                                    <button class="stepper-button" id="node-distance-decrease" type="button"
-                                        aria-label="Decrease node distance">−</button>
-                                    <span class="stepper-value" id="node-distance-value" role="spinbutton"
-                                        aria-labelledby="node-distance-label"
-                                        aria-valuemin="1" aria-valuemax="100" aria-valuenow="3" tabindex="0">3</span>
-                                    <button class="stepper-button" id="node-distance-increase" type="button"
-                                        aria-label="Increase node distance">+</button>
-                                </div>
-                            </div>
-                        </div>
+                    <!-- Layout parameters: fields live in the modal, opened from the toolbar. -->
+                    <div class="params-toolbar">
+                        <button type="button" id="open-parameters" class="param-open-btn" aria-haspopup="dialog">
+                            Layout Parameters
+                            <span id="parameters-count" class="param-count" hidden>0</span>
+                        </button>
+                        <span class="param-toolbar-note">Values are written into the Lua script as literals.</span>
                     </div>
-                    <p class="mode-note" id="params-note" hidden>Parameters come from ParameterDefinitions.json
-                        metadata and are passed to the Lua script — nothing is generated in this page.</p>
 
                     <div class="editor-grid">
                         <div class="editor">
@@ -170,6 +168,34 @@
                         <button id="run-custom" class="btn btn--primary" type="button">Execute script</button>
                     </div>
                 </div>
+
+                <!-- Layout parameters modal: opened from the toolbar button above. -->
+                <dialog id="parameters-modal" class="parameters-modal" aria-labelledby="parameters-modal-title">
+                    <div class="modal-head">
+                        <div class="modal-heading">
+                            <span class="modal-icon" aria-hidden="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" />
+                                </svg>
+                            </span>
+                            <div>
+                                <h3 id="parameters-modal-title">Layout Parameters</h3>
+                                <p class="modal-sub">Fields follow the loaded Lua script — each change is written into the
+                                    code as a literal before execution.</p>
+                            </div>
+                        </div>
+                        <button type="button" id="close-parameters" class="modal-close"
+                            aria-label="Close layout parameters">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="layout-parameters" hidden></div>
+                        <p id="parameters-empty" class="param-empty" hidden>
+                            No parameters yet. Pick a layout method and a graph first, or upload
+                            ParameterDefinitions.json.
+                        </p>
+                    </div>
+                </dialog>
 
                 <p class="status" id="status" role="status" aria-live="polite">
                     <span class="label">Engine status</span>

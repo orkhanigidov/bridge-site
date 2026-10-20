@@ -83,7 +83,7 @@ export function createEngineClient() {
             const requestPayload = {
                 cpp_code: payload.cpp_code,
                 lua_code: payload.lua_code,
-                graphml_file: payload.graphml_file || payload.input_file,
+                graphml_file: payload.graphml_file,
                 graphml_name: payload.graphml_name || '',
             };
 
