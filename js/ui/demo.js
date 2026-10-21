@@ -352,6 +352,16 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
             const parametersShown = await parameterForm.setLuaSource(elements.sourceBridge.value, { resetSubstitutions: true });
             if (parametersShown) injectVisibleDefaults();
             syncParametersUI();
+
+            if (!state.graphML.lua && !state.graphML.cpp) {
+                try {
+                    const rawGraphML = await fetch(`examples/graphml/${graphFile}`, { cache: 'no-store' }).then(r => r.text());
+                    if (rawGraphML) {
+                        graph3dViewer?.render(`${graphFile} · Input GraphML`, rawGraphML);
+                    }
+                } catch {
+                }
+            }
             setBusy(false);
             setStatus(parametersShown
                 ? `Source code loaded — ${parameterForm.getVisibleCount()} parameters under “Layout Parameters”.`
@@ -426,14 +436,20 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
 
             if (elements.panelCase) elements.panelCase.hidden = false;
             
-            // Try to load ParameterDefinitions.json (localStorage first, then the example file).
             const parametersLoaded = await parameterForm.ensureLoaded();
             if (parametersLoaded) updateParamFileStatus('Example defaults');
             syncParametersUI();
+
+            if (!elements.methodSelect.value) {
+                elements.methodSelect.value = 'hierarchical';
+            }
+            if (!elements.graphSelect.value) {
+                elements.graphSelect.value = 'Mesh.graphml';
+            }
+            await loadSelectedSource();
+
             setBusy(false);
-            setStatus(parametersLoaded
-                ? 'Resources loaded from examples. Pick a method and a graph to see the source code.'
-                : 'Resources loaded from examples, but ParameterDefinitions.json could not be fetched — upload it under the selects.');
+            setStatus('Resources loaded from examples. Pick a layout method and graph to compare, or adjust parameters.');
         } catch (error) {
             setBusy(false);
             setStatus(`Could not load resources: ${error.message}`);
