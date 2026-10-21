@@ -456,29 +456,10 @@ summary:focus-visible {
     border-radius: 0 var(--radius, 2px) var(--radius, 2px) 0;
 }
 
-/* Verified connection hides the input until the key changes or execution fails. */
+/* Verified connection hides the key input until the key is edited or a run fails. */
 .api-key-field.is-connected > .label,
 .api-key-field.is-connected .api-key-row {
     display: none;
-}
-
-.api-key-connected {
-    margin: 0.5rem 0 0;
-}
-
-.api-key-change {
-    padding: 0;
-    border: none;
-    background: none;
-    color: var(--accent, #0f766e);
-    font: inherit;
-    text-decoration: underline;
-    cursor: pointer;
-}
-
-.api-key-change:focus-visible {
-    outline: var(--focus-ring, 2px solid #0f766e);
-    outline-offset: 2px;
 }
 
 .tabs {

@@ -17,8 +17,6 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
     const elements = {
         apiKeyInput: root.querySelector('#api-key'),
         apiKeyField: root.querySelector('.api-key-field'),
-        apiKeyConnected: root.querySelector('#api-key-connected'),
-        apiKeyChange: root.querySelector('#api-key-change'),
         loadResourcesButton: root.querySelector('#load-resources'),
         methodSelect: root.querySelector('#method-select'),
         graphSelect: root.querySelector('#graph-select'),
@@ -199,29 +197,19 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
     }
 
     /* ---- engine connection: the key input stays visible until an
-       execution succeeds with the current key, then hides; editing the key
-       (or a failed run) makes it visible again. ---- */
+       execution succeeds with the current key, then hides until the key
+       is edited or a run fails. ---- */
     let verifiedKey = '';
-    let revealRequested = false;
 
     const updateConnectionUi = () => {
-        const connected = !revealRequested
-            && Boolean(verifiedKey)
+        const connected = Boolean(verifiedKey)
             && elements.apiKeyInput.value.trim() === verifiedKey;
         elements.apiKeyField.classList.toggle('is-connected', connected);
-        elements.apiKeyConnected.hidden = !connected;
     };
 
     elements.apiKeyInput.addEventListener('input', () => {
         localStorage.setItem(API_KEY_STORAGE_KEY, elements.apiKeyInput.value);
-        revealRequested = false;
         updateConnectionUi();
-    });
-
-    elements.apiKeyChange?.addEventListener('click', () => {
-        revealRequested = true;
-        updateConnectionUi();
-        elements.apiKeyInput.focus();
     });
 
     updateConnectionUi();
@@ -587,14 +575,13 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
                 state.graphML[state.activeGraphML] || '');
             setStatus('Completed. Pane A shows the returned SVGs, pane B the returned GraphML layout.', 'succeeded');
             verifiedKey = apiKey.trim();
-            revealRequested = false;
             updateConnectionUi();
         } catch (error) {
             renderStages(new Set(), 'running');
             elements.stagesSummary.hidden = false;
             elements.stagesSummary.textContent = 'failed';
             setStatus(error.message, 'error');
-            revealRequested = false;
+            verifiedKey = '';
             updateConnectionUi();
         } finally {
             setBusy(false);
