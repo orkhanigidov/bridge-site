@@ -2337,3 +2337,45 @@ summary:focus-visible {
 #layout-parameters .param-control input[type="range"]:active::-moz-range-thumb {
     box-shadow: 0 0 0 3px var(--accent-soft, #ccfbf1);
 }
+
+/* ============ privacy policy ============ */
+.policy {
+    max-width: 52rem;
+}
+
+.policy h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+}
+
+.policy h2 {
+    font-size: 1.25rem;
+    margin: 2.5rem 0 0.75rem;
+}
+
+.policy p {
+    margin-top: 0.75rem;
+    color: var(--ink-soft, #44403c);
+    max-width: 46rem;
+}
+
+.policy ul {
+    margin: 0.75rem 0 0;
+    padding-left: 1.25rem;
+    color: var(--ink-soft, #44403c);
+}
+
+.policy li {
+    margin-top: 0.375rem;
+}
+
+.policy li strong {
+    color: var(--ink, #1c1917);
+}
+
+.policy a {
+    color: var(--accent, #0f766e);
+}
+
+.policy a:hover {
+    color: var(--accent-deep, #134e4a);
+}
