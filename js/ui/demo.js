@@ -16,6 +16,9 @@ const EXECUTION_PATH_LABELS = { cpp: 'C++ direct', lua: 'Lua · via BRIDGE' };
 export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
     const elements = {
         apiKeyInput: root.querySelector('#api-key'),
+        apiKeyField: root.querySelector('.api-key-field'),
+        apiKeyConnected: root.querySelector('#api-key-connected'),
+        apiKeyChange: root.querySelector('#api-key-change'),
         loadResourcesButton: root.querySelector('#load-resources'),
         methodSelect: root.querySelector('#method-select'),
         graphSelect: root.querySelector('#graph-select'),
@@ -195,9 +198,33 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
         elements.apiKeyInput.value = engineConfig.defaultApiKey;
     }
 
+    /* ---- engine connection: the key input stays visible until an
+       execution succeeds with the current key, then hides; editing the key
+       (or a failed run) makes it visible again. ---- */
+    let verifiedKey = '';
+    let revealRequested = false;
+
+    const updateConnectionUi = () => {
+        const connected = !revealRequested
+            && Boolean(verifiedKey)
+            && elements.apiKeyInput.value.trim() === verifiedKey;
+        elements.apiKeyField.classList.toggle('is-connected', connected);
+        elements.apiKeyConnected.hidden = !connected;
+    };
+
     elements.apiKeyInput.addEventListener('input', () => {
         localStorage.setItem(API_KEY_STORAGE_KEY, elements.apiKeyInput.value);
+        revealRequested = false;
+        updateConnectionUi();
     });
+
+    elements.apiKeyChange?.addEventListener('click', () => {
+        revealRequested = true;
+        updateConnectionUi();
+        elements.apiKeyInput.focus();
+    });
+
+    updateConnectionUi();
 
     /* ---- static panels ---- */
 
@@ -430,10 +457,6 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
                 elements.graphSelect.append(option);
             }
 
-            // Show the panels now that the API key is provided
-            const apiKeyField = elements.apiKeyInput.closest('.api-key-field');
-            if (apiKeyField) apiKeyField.hidden = true;
-
             if (elements.panelCase) elements.panelCase.hidden = false;
             
             const parametersLoaded = await parameterForm.ensureLoaded();
@@ -458,10 +481,7 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
 
     elements.loadResourcesButton.addEventListener('click', () => loadResources());
 
-    // Auto-load resources if API secret is already present
-    if (elements.apiKeyInput.value) {
-        loadResources();
-    }
+    loadResources();
 
     // Initial parameter status from localStorage
     if (localStorage.getItem(PARAM_DEFS_STORAGE_KEY)) {
@@ -566,11 +586,16 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
             graph3dViewer?.render(`${graphName} · ${EXECUTION_PATH_LABELS[state.activeGraphML]}`,
                 state.graphML[state.activeGraphML] || '');
             setStatus('Completed. Pane A shows the returned SVGs, pane B the returned GraphML layout.', 'succeeded');
+            verifiedKey = apiKey.trim();
+            revealRequested = false;
+            updateConnectionUi();
         } catch (error) {
             renderStages(new Set(), 'running');
             elements.stagesSummary.hidden = false;
             elements.stagesSummary.textContent = 'failed';
             setStatus(error.message, 'error');
+            revealRequested = false;
+            updateConnectionUi();
         } finally {
             setBusy(false);
         }
