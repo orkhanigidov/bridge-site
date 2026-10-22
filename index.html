@@ -36,6 +36,8 @@
             <nav class="nav" aria-label="Main">
                 <a class="nav-link" href="#demo">Live demo</a>
                 <a class="nav-link" href="#architecture">Architecture</a>
+                <a class="nav-link" href="#evaluation">Evaluation</a>
+                <a class="nav-link" href="#case-studies">Case studies</a>
                 <a class="nav-link" href="#reproduce">Reproduce</a>
                 <a class="nav-link" href="#resources">Resources</a>
             </nav>
@@ -56,7 +58,9 @@
                         BRIDGE (Binding Runtime Interface for Dynamic General Execution) is a hybrid architecture that connects the Open Graph Drawing Framework (OGDF) to the
                         GAV-VR viewer. It uses an automated binding generation pipeline (LibClang AST analysis →
                         sol2/Lua bindings), a dual execution strategy (native P/Invoke for low latency, network mode for
-                        cloud offloading), and thread-local Lua state management for memory safety.
+                        cloud offloading), and thread-local Lua state management for memory safety. While demonstrated
+                        with OGDF and GAV-VR, the architecture is designed to generalize to other C++ graph libraries
+                        and Unity-based visualization environments.
                     </p>
                     <div class="badge-row">
                         <span class="badge">No headset required</span>
@@ -75,9 +79,9 @@
             </div>
 
             <p class="authors">
-                <strong>Orkhan Igidov</strong> · Supervised by Dr. Karsten Klein &amp; Prof. Dr. Falk Schreiber
+                <strong>Orkhan Igidov</strong> · <strong>Karsten Klein</strong> · <strong>Falk Schreiber</strong>
                 <br>
-                <span>Life Science Informatics · Department of Computer and Information Science · University of Konstanz</span>
+                <span>Department of Computer and Information Science · University of Konstanz, Germany</span>
             </p>
 
             <div class="rq-grid">
@@ -106,16 +110,14 @@
                     <div>
                         <p class="eyebrow">Live comparison</p>
                         <h2 class="demo-title">One case, two paths, side by side</h2>
-                        <p class="lead">Connect the Engine and pick a predefined C++/Lua pair, or paste your own.
-                            Pane A fills only after the Engine returns graph data; pane B explores the parsed GraphML
-                            in an interactive 3D view while preserving its original layout coordinates.</p>
+                        <p class="lead">Pick a predefined C++/Lua layout pair and graph to inspect the code. Connect a running Engine to execute live layouts and compare the C++ vs. Lua results side by side — as dual SVG outputs in Pane A, and as the same dual outputs in an interactive 3D view (Three.js) in Pane B.</p>
                     </div>
                     <div class="api-key-field">
                         <label class="label" for="api-key">Engine connection (optional)</label>
                         <div class="api-key-row">
                             <input id="api-key" type="password" autocomplete="off" spellcheck="false"
-                                placeholder="Enter your generated API secret key">
-                            <button id="load-resources" class="btn btn--dark" type="button">Load resources</button>
+                                placeholder="Enter API key to run live Engine">
+                            <button id="load-resources" class="btn btn--dark" type="button">Reload examples</button>
                         </div>
                     </div>
                 </div>
@@ -396,7 +398,9 @@
                         low-latency local execution) and Network Interface (cloud offloading for compute-intensive
                         tasks), and (3) a <strong>C# Client</strong> in GAV-VR managing execution strategies and UI.
                         Thread-local Lua state (TLS) ensures memory safety and concurrency; a strict whitelist policy
-                        enforces security.
+                        enforces security. The design is constrained by VR's requirement of a minimum 72 frames per
+                        second: heavy graph processing must never block the main rendering thread, which is why the
+                        client runs all layout work asynchronously.
                     </p>
                 </div>
                 <figure class="figure">
@@ -500,7 +504,223 @@
                     layouts are identical to what OGDF produces directly. BRIDGE
                     uses thread-local Lua state (TLS) for memory safety, and enforces a whitelist
                     security policy. Dual execution modes (Native P/Invoke + Network REST) share the same
-                    automated binding layer.
+                    automated binding layer. The Codegen pipeline's AST analysis is agnostic to the target
+                    scripting language — other languages can be supported by implementing a language-specific
+                    generator backend — and the three-layer pattern (P/Invoke base, Lua intermediary, automated
+                    binding generation) is designed to generalize to other C++ graph libraries and Unity-based
+                    visualization environments.
+                </p>
+            </div>
+        </section>
+
+        <!-- ============ EVALUATION ============ -->
+        <section id="evaluation" class="band band--light">
+            <div class="container">
+                <div class="section-head">
+                    <p class="eyebrow">Evaluation</p>
+                    <h2>Overhead, concurrency and isolation</h2>
+                    <p class="lead">
+                        Measured in an isolated containerized environment (Ubuntu 24.04, GCC 13.3.0, Lua 5.4, oat++
+                        1.3.1), with the test client on a separate Windows host. Overhead is the difference between
+                        the client-side round trip and the server-side script execution time. Timings are absolute
+                        values from a single consumer-grade machine; full methodology, hardware specs, and raw
+                        data: thesis, Chapter 5.
+                    </p>
+                </div>
+
+                <div class="metrics-strip">
+                    <div class="metric-card">
+                        <span class="metric-val">≤ 45 ms</span>
+                        <span class="metric-lbl">Peak bridge cost per request</span>
+                        <span class="metric-sub">Measured 7.7–45 ms across all workloads, 8 to 1,000 nodes — does not scale with graph size</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-val">0.0%</span>
+                        <span class="metric-lbl">Error rate under load</span>
+                        <span class="metric-sub">I/O-bound workload, 100 concurrent threads, 1.2 MB graphs</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-val">+2.23 MB</span>
+                        <span class="metric-lbl">Memory growth over 2,000 requests</span>
+                        <span class="metric-sub">Plateaued — no linear leak in the C++/Lua interop layer</span>
+                    </div>
+                </div>
+
+                <div class="section-head" style="margin-bottom: 1rem; margin-top: 2rem;">
+                    <h3>Round-trip overhead</h3>
+                    <p class="lead" style="font-size: 0.9375rem;">
+                        Mean time per request for four representative workloads, from trivial to data-heavy.
+                    </p>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Workload</th>
+                                <th>Graph · script</th>
+                                <th class="num">Round trip (ms)</th>
+                                <th class="num">Script (ms)</th>
+                                <th class="num">Overhead (ms)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Baseline</strong></td>
+                                <td>Cube (8 nodes) · orthogonal.lua</td>
+                                <td class="num">53.86</td>
+                                <td class="num">9.05</td>
+                                <td class="num">44.81</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Algorithmic</strong></td>
+                                <td>n100e100 (100 nodes) · hierarchical.lua</td>
+                                <td class="num">44.29</td>
+                                <td class="num">36.63</td>
+                                <td class="num">7.66</td>
+                            </tr>
+                            <tr>
+                                <td><strong>CPU stress</strong></td>
+                                <td>Mesh (24 nodes) · orthogonal.lua</td>
+                                <td class="num">69.30</td>
+                                <td class="num">24.32</td>
+                                <td class="num">44.98</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Data volume</strong></td>
+                                <td>n1000e1000 (1,000 nodes) · energybased.lua</td>
+                                <td class="num">2448.84</td>
+                                <td class="num">2416.48</td>
+                                <td class="num">32.36</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="section-footnote" style="margin-top: 0.5rem;">
+                    The bridge cost is bounded, not proportional: from the 8-node baseline to the 1,000-node
+                    workload, computation grows from 9 ms to 2,416 ms, while the per-request overhead stays below
+                    45 ms in every scenario (7.7–45 ms measured). Its components — TCP handshake, HTTP header
+                    parsing, Lua state initialization, payload transfer — vary with workload type and connection
+                    behavior, not with graph size, so the decoupled architecture does not become the bottleneck as
+                    graphs scale.
+                </p>
+
+                <div class="rq-grid" style="margin-top: 1.5rem;">
+                    <div class="rq-card">
+                        <span class="meta-role">Concurrency</span>
+                        <h3>Isolation under load</h3>
+                        <p>Each server thread owns an isolated Lua VM via thread-local state — no global locks.
+                            At 100 concurrent threads the I/O-bound workload (1.2 MB graphs) completed with a
+                            0.0% error rate at ~64 req/s; CPU-bound throughput peaked at 323.85 req/s. The rare
+                            errors at 50–100 CPU-bound threads were Docker network-bridge saturation, not Engine
+                            faults — the connection-heavy scenario outpaced the container's network stack.</p>
+                    </div>
+                    <div class="rq-card">
+                        <span class="meta-role">Memory</span>
+                        <h3>No linear leaks</h3>
+                        <p>Resident Set Size was monitored via the Docker statistics API across 500 to 2,000
+                            sequential requests in three stress scenarios (heavy object churn, fragmentation,
+                            large buffers). Growth plateaued in all three — characteristic of Lua 5.4's incremental
+                            garbage collector, not a leak.</p>
+                    </div>
+                    <div class="rq-card">
+                        <span class="meta-role">Sandbox</span>
+                        <h3>Restricted Lua environment</h3>
+                        <p>Five injected payloads — <code>os.execute</code>, <code>io.open</code>, dynamic
+                            table-name reconstruction, <code>load()</code>, and an infinite loop — were all
+                            neutralized. The whitelist loads only <code>base, math, table, string</code>, so
+                            dangerous namespaces are unreachable regardless of obfuscation; a 2,000 ms watchdog
+                            stops runaway scripts.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ CASE STUDIES ============ -->
+        <section id="case-studies" class="band">
+            <div class="container">
+                <div class="section-head">
+                    <p class="eyebrow">Case Studies</p>
+                    <h2>Algorithmic fidelity in VR</h2>
+                    <p class="lead">
+                        Four layout algorithms were executed natively and through BRIDGE, then rendered in GAV-VR
+                        and compared against OGDF's own 2D reference output. Each scenario was run five times in a
+                        randomized sequence, alternating Native and Network modes.
+                    </p>
+                </div>
+
+                <div class="case-grid">
+                    <div class="case-card">
+                        <div class="case-header">
+                            <h3>Case 1: Orthogonal Layout</h3>
+                            <span class="case-timing">Native: 29 ms · Network: 35 ms</span>
+                        </div>
+                        <p>Applied to <code>Mesh.graphml</code> (24 nodes). Planarization and orthogonal routing
+                            produce a clear grid topology.</p>
+                        <div class="case-findings">
+                            <strong>Observed:</strong> Node coordinates match the OGDF reference grid exactly.
+                        </div>
+                    </div>
+
+                    <div class="case-card">
+                        <div class="case-header">
+                            <h3>Case 2: PivotMDS</h3>
+                            <span class="case-timing">Native: 1.8 ms · Network: 4.2 ms</span>
+                        </div>
+                        <p>Applied to <code>Mesh.graphml</code> (24 nodes). Multidimensional scaling projects the
+                            graph into spatial (<code>x, y, z</code>) coordinates.</p>
+                        <div class="case-findings">
+                            <strong>Observed:</strong> Fastest algorithm tested. GAV-VR forms a coherent 3D
+                            cylinder — direct 3D coordinate streaming from Lua works without collapsing to a
+                            planar layout.
+                        </div>
+                    </div>
+
+                    <div class="case-card">
+                        <div class="case-header">
+                            <h3>Case 3: Hierarchical (Sugiyama)</h3>
+                            <span class="case-timing">Native: 71 ms · Network: 70–80 ms</span>
+                        </div>
+                        <p>Applied to <code>n100e100.graphml</code> (100 nodes). Layered drawing: ranking, crossing
+                            minimization, hierarchy layout.</p>
+                        <div class="case-findings">
+                            <strong>Observed:</strong> The global top-down layering is preserved. Some sub-branches
+                            appear with flipped orientation in the GAV-VR parser — a frontend artifact, not a
+                            layout error.
+                        </div>
+                    </div>
+
+                    <div class="case-card">
+                        <div class="case-header">
+                            <h3>Case 4: Energy-Based (FMMM)</h3>
+                            <span class="case-timing">Native: 2.65 s · Network: 2.86 s</span>
+                        </div>
+                        <p>Applied to <code>n1000e1000.graphml</code> (1,000 nodes, ≈1.21 MB). Multilevel
+                            force-directed layout at scale.</p>
+                        <div class="case-findings">
+                            <strong>Observed:</strong> The dense central cluster with peripheral chains is
+                            preserved. At this size the dominant cost is layout computation — and VR rendering
+                            itself, not the bridge, becomes the bottleneck.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-head" style="margin-bottom: 0.5rem; margin-top: 2.5rem;">
+                    <h3>Known limitations</h3>
+                </div>
+                <ul class="known-limits">
+                    <li><strong>Orientation:</strong> Some hierarchical sub-branches are drawn with a different
+                        orientation than the reference. The cause is in the frontend parser, not in the layout
+                        result.</li>
+                    <li><strong>Scale:</strong> Graphs with about 1,000 nodes need server-side layout, and
+                        rendering that many GameObjects causes frame drops in VR. Level-of-detail clustering is
+                        future work.</li>
+                </ul>
+
+                <p class="section-footnote">
+                    For every evaluated case, the SVG and GraphML outputs of direct C++ execution and of BRIDGE Lua execution
+                    are topologically identical — the interoperability layer transmits all layout data, node
+                    coordinates, and edge routing points without error. The visual differences seen in VR come
+                    from the GAV-VR GraphML parser, not from the layout calculation.
                 </p>
             </div>
         </section>
@@ -609,8 +829,7 @@
                         <span class="step-num">Step 4</span>
                         <div>
                             <h3>Or verify against the hosted runner</h3>
-                            <p>The Engine's Network mode exposes a REST API. Send a script-execution request with curl
-                                On AWS, the API Gateway endpoint requires IAM/SigV4-signed requests.</p>
+                            <p>The Engine's Network mode exposes a REST API. Send a script-execution request with curl. On AWS, the API Gateway endpoint requires IAM/SigV4-signed requests.</p>
                             <div class="codeblock codeblock--flat" data-copy-scope>
                                 <div class="codeblock-head"><span class="terminal-dots" aria-hidden="true"><span
                                             class="terminal-dot terminal-dot--red"></span><span
