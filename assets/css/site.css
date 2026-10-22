@@ -462,6 +462,23 @@ summary:focus-visible {
     display: none;
 }
 
+.api-key-field .api-key-hint {
+    margin-top: 0.4rem;
+    font-size: 0.8125rem;
+}
+
+.api-key-field .api-key-hint[data-state='ok'] {
+    color: var(--accent, #0f766e);
+}
+
+.api-key-field .api-key-hint[data-state='error'] {
+    color: #b91c1c;
+}
+
+.api-key-field.is-error input {
+    border-color: #b91c1c;
+}
+
 .tabs {
     display: inline-flex;
     border: 1px solid var(--line-strong, #a8a29e);
