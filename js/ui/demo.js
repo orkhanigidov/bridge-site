@@ -245,7 +245,6 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
         healthTimer = setTimeout(runHealthCheck, 600);
     });
 
-    runHealthCheck();
 
     /* ---- static panels ---- */
 
@@ -716,4 +715,7 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
     });
 
     renderSvgOutput('');
+
+    // Initial health check must run after setStatus is defined (TDZ).
+    runHealthCheck();
 }
