@@ -13,6 +13,7 @@ export class EngineError extends Error {
 const ENGINE_BASE_URL = 'https://api.bridgeengine.tech';
 const JSON_CONTENT_HEADERS = { 'Content-Type': 'application/json' };
 const REQUEST_TIMEOUT_MS = 180_000;
+const HEALTH_TIMEOUT_MS = 10_000;
 
 function requireApiKey(apiKey) {
     if (typeof apiKey !== 'string' || !apiKey.trim()) {
@@ -22,12 +23,9 @@ function requireApiKey(apiKey) {
     return apiKey.trim();
 }
 
-async function requestJson(requestUrl, options = {}) {
+async function requestJson(requestUrl, options = {}, timeoutMs = REQUEST_TIMEOUT_MS) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(
-        () => controller.abort(),
-        REQUEST_TIMEOUT_MS
-    );
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
         const response = await fetch(requestUrl, {
@@ -42,7 +40,11 @@ async function requestJson(requestUrl, options = {}) {
         });
 
         if (!response.ok) {
-            throw new EngineError(`Engine returned HTTP ${response.status}.`);
+            throw new EngineError(
+                response.status === 401
+                    ? 'Engine rejected the API secret (401). Check the key.'
+                    : `Engine returned HTTP ${response.status}.`
+            );
         }
 
         try {
@@ -75,6 +77,21 @@ export function createEngineClient() {
         /** GET /api/parameters is no longer used as we load examples locally */
 
         /** GET /api/source/{method} is no longer used as we load examples locally */
+
+        /** GET /api/health — one call proves connectivity and the API secret. */
+        async checkHealth(apiKey) {
+            const key = requireApiKey(apiKey);
+
+            const responseData = await requestJson(`${ENGINE_BASE_URL}/api/health`, {
+                method: 'GET',
+                headers: { 'X-API-Secret': key },
+            }, HEALTH_TIMEOUT_MS);
+
+            return {
+                ok: responseData.status_code === 200,
+                message: responseData.message || '',
+            };
+        },
 
         /** POST /api/execute_sequential */
         async executeSequential(apiKey, payload) {

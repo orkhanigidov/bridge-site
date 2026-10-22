@@ -196,23 +196,53 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
         elements.apiKeyInput.value = engineConfig.defaultApiKey;
     }
 
-    /* ---- engine connection: the key input stays visible until an
-       execution succeeds with the current key, then hides until the key
-       is edited or a run fails. ---- */
+    /* ---- engine connection: GET /api/health proves connectivity and the
+       key in one call; success hides the key input until the key is edited
+       or a run fails. ---- */
     let verifiedKey = '';
+    let healthTimer = 0;
 
     const updateConnectionUi = () => {
         const connected = Boolean(verifiedKey)
             && elements.apiKeyInput.value.trim() === verifiedKey;
-        elements.apiKeyField.classList.toggle('is-connected', connected);
+        elements.apiKeyField?.classList.toggle('is-connected', connected);
+    };
+
+    const runHealthCheck = async () => {
+        const apiKey = elements.apiKeyInput.value.trim();
+        if (!apiKey) {
+            verifiedKey = '';
+            updateConnectionUi();
+            return;
+        }
+
+        try {
+            setStatus('Checking Engine connection...');
+            const result = await engineClient.checkHealth(apiKey);
+            verifiedKey = apiKey;
+            updateConnectionUi();
+            setStatus(`Engine connected — ${result.message || 'health check OK'}.`, 'succeeded');
+        } catch (error) {
+            verifiedKey = '';
+            updateConnectionUi();
+            setStatus(error.message, 'error');
+        }
     };
 
     elements.apiKeyInput.addEventListener('input', () => {
         localStorage.setItem(API_KEY_STORAGE_KEY, elements.apiKeyInput.value);
+        // Editing the key revokes the verified state until health passes again.
+        verifiedKey = '';
         updateConnectionUi();
+        clearTimeout(healthTimer);
+        healthTimer = setTimeout(runHealthCheck, 600);
     });
 
-    updateConnectionUi();
+    if (elements.apiKeyInput.value) {
+        runHealthCheck();
+    } else {
+        updateConnectionUi();
+    }
 
     /* ---- static panels ---- */
 
