@@ -339,6 +339,26 @@ code {
     font-weight: 600;
 }
 
+.gh-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.star-badge-link {
+    display: inline-flex;
+    align-items: center;
+    line-height: 0;
+}
+
+.star-badge-link:hover {
+    opacity: 0.85;
+}
+
+.star-badge-link img {
+    display: block;
+}
+
 /* ============ buttons ============ */
 .btn {
     display: inline-block;
@@ -364,6 +384,30 @@ code {
 
 .btn--dark:active {
     background: var(--ink-mute, #57534e);
+}
+
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    padding: 0;
+    border-radius: 50%;
+    background: transparent;
+    border-color: transparent;
+    color: var(--ink, #1c1917);
+}
+
+.btn-icon:hover {
+    background: transparent;
+    box-shadow: none;
+    opacity: 0.7;
+}
+
+.btn-icon:active {
+    background: transparent;
+    color: var(--ink-mute, #57534e);
 }
 
 .btn--primary {
