@@ -25,8 +25,8 @@ export const COMPARISON_CHECKS = [
 export const METHOD_GRAPH_COMPATIBILITY = {
     'energybased':          ['Cube.graphml', 'Mesh.graphml', 'n100e100.graphml', 'n1000e1000.graphml'],
     'hierarchical':         ['Cube.graphml', 'Mesh.graphml', 'n100e100.graphml', 'n1000e1000.graphml'],
-    'hierarchical-ranking': ['Cube.graphml', 'Mesh.graphml', 'n100e100.graphml', 'n1000e1000.graphml'],
-    'orthogonal':           ['Cube.graphml', 'Mesh.graphml', 'n100e100.graphml', 'n1000e1000.graphml'],
+    'hierarchical-ranking': ['Cube.graphml', 'Mesh.graphml', 'n100e100.graphml'],
+    'orthogonal':           ['Cube.graphml', 'Mesh.graphml', 'n100e100.graphml'],
     'pivotmds':             ['Cube.graphml', 'Mesh.graphml', 'n100e100.graphml', 'n1000e1000.graphml'],
 };
 
