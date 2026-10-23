@@ -17,6 +17,19 @@ export const COMPARISON_CHECKS = [
     'Deterministic reruns — the Engine re-binds a fresh Lua state per execution, eliminating side effects.',
 ];
 
+/**
+ * Compatibility matrix: which layout methods actually run on which example graphs.
+ * Edit this table — a method missing a graph in its list is disabled for that graph
+ * in the demo selects. A method with no entry (or an empty list) allows every graph.
+ */
+export const METHOD_GRAPH_COMPATIBILITY = {
+    'energybased':          ['Cube.graphml', 'Mesh.graphml', 'n100e100.graphml', 'n1000e1000.graphml'],
+    'hierarchical':         ['Cube.graphml', 'Mesh.graphml', 'n100e100.graphml', 'n1000e1000.graphml'],
+    'hierarchical-ranking': ['Cube.graphml', 'Mesh.graphml', 'n100e100.graphml', 'n1000e1000.graphml'],
+    'orthogonal':           ['Cube.graphml', 'Mesh.graphml', 'n100e100.graphml', 'n1000e1000.graphml'],
+    'pivotmds':             ['Cube.graphml', 'Mesh.graphml', 'n100e100.graphml', 'n1000e1000.graphml'],
+};
+
 /** Ordered stages the runner reports while a job progresses. */
 export const EXECUTION_STAGES = [
     { id: 'queued', label: 'Queued' },

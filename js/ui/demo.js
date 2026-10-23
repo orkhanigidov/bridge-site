@@ -6,6 +6,7 @@
 import {
     COMPARISON_CHECKS,
     EXECUTION_STAGES,
+    METHOD_GRAPH_COMPATIBILITY,
 } from '../config/siteConfig.js';
 import { initCodeTabs } from './codeTabs.js';
 import { renderSvgGraph } from './svgGraphViewer.js';
@@ -477,6 +478,34 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
                 elements.graphSelect.append(option);
             }
 
+            // Apply the compatibility matrix: disable method options that cannot
+            // run on the currently selected graph (and vice versa).
+            const allowedFor = (method, graph) => {
+                const list = METHOD_GRAPH_COMPATIBILITY[method];
+                return !list || list.length === 0 || list.includes(graph);
+            };
+            const syncCompatibility = () => {
+                const graph = elements.graphSelect.value;
+                const method = elements.methodSelect.value;
+                // An empty selection imposes no restriction — skip disabling.
+                for (const option of elements.methodSelect.options) {
+                    if (!option.value) continue;
+                    option.disabled = graph !== '' && !allowedFor(option.value, graph);
+                    option.textContent = option.disabled ? `${option.value} (not compatible)` : option.value;
+                }
+                for (const option of elements.graphSelect.options) {
+                    if (!option.value) continue;
+                    option.disabled = method !== '' && !allowedFor(method, option.value);
+                    option.textContent = option.disabled ? `${option.value} (not compatible)` : option.value;
+                }
+                if (method && graph && !allowedFor(method, graph)) {
+                    const fallback = [...elements.methodSelect.options].find(o => o.value && !o.disabled);
+                    elements.methodSelect.value = fallback ? fallback.value : '';
+                }
+            };
+            elements.methodSelect.addEventListener('change', syncCompatibility);
+            elements.graphSelect.addEventListener('change', syncCompatibility);
+
             if (elements.panelCase) elements.panelCase.hidden = false;
             
             const parametersLoaded = await parameterForm.ensureLoaded();
@@ -489,6 +518,9 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
             if (!elements.graphSelect.value) {
                 elements.graphSelect.value = 'Mesh.graphml';
             }
+            // Defaults are set programmatically (no change event fires) — sync now
+            // that both selects hold their final values.
+            syncCompatibility();
             await loadSelectedSource();
 
             setBusy(false);
