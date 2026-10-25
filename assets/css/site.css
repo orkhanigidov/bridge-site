@@ -1141,6 +1141,151 @@ summary:focus-visible {
     max-width: 52rem;
 }
 
+/* ============ video embed ============ */
+.video-embed {
+    margin: 0;
+    max-width: 60rem;
+}
+
+.video-stage {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    border: 1px solid var(--line, #d6d3d1);
+    border-radius: var(--radius, 2px);
+    background: var(--ink, #1c1917);
+    overflow: hidden;
+}
+
+.video-facade {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+.video-facade img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.video-facade:hover img,
+.video-facade:focus-visible img {
+    transform: scale(1.02);
+    opacity: 0.88;
+}
+
+.video-play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 4.5rem;
+    height: 4.5rem;
+    border-radius: 50%;
+    background: var(--accent, #0f766e);
+    color: var(--panel, #ffffff);
+    box-shadow: var(--shadow-md, 0 4px 6px rgba(0, 0, 0, 0.07));
+    transition: background-color var(--transition-fast, 0.15s ease), transform var(--transition-fast, 0.15s ease);
+}
+
+.video-play svg {
+    margin-left: 0.2rem;
+}
+
+.video-facade:hover .video-play,
+.video-facade:focus-visible .video-play {
+    background: var(--accent-deep, #134e4a);
+    transform: translate(-50%, -50%) scale(1.06);
+}
+
+.video-facade:focus-visible {
+    outline: var(--focus-ring, 2px solid #0f766e);
+    /* Negative offset keeps the outline visible inside the clipped stage */
+    outline-offset: -3px;
+}
+
+/* Both the muted preview and the full player are staged inside .video-stage */
+.video-stage iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+.video-preview-frame {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none; /* clicks fall through to the facade button */
+}
+
+.video-preview-hint {
+    display: none;
+    position: absolute;
+    left: 0.75rem;
+    bottom: 0.75rem;
+    z-index: 2;
+    padding: 0.25rem 0.5rem;
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--panel, #ffffff);
+    background: rgba(28, 25, 23, 0.78);
+    border-radius: var(--radius, 2px);
+}
+
+.video-embed--preview .video-preview-hint {
+    display: inline-block;
+}
+
+/* Slightly smaller play affordance while the preview loops behind it */
+.video-embed--preview .video-play {
+    width: 3.5rem;
+    height: 3.5rem;
+}
+
+.video-embed--preview .video-play svg {
+    width: 22px;
+    height: 22px;
+}
+
+.video-caption {
+    margin-top: 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--ink-mute, #57534e);
+}
+
+.video-caption a {
+    color: var(--accent-deep, #134e4a);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+}
+
+.video-caption a:hover {
+    color: var(--accent, #0f766e);
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .video-facade img,
+    .video-play {
+        transition: none;
+    }
+}
+
 /* ============ architecture figures ============ */
 .figure {
     margin: 0 0 2.5rem;
