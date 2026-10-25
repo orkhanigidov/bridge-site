@@ -230,12 +230,6 @@ code {
     color: var(--ink-soft, #44403c);
 }
 
-.footer-brand {
-    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
-    font-weight: 600;
-    color: var(--ink, #1c1917);
-}
-
 @media (min-width: 40rem) {
     .footer-inner {
         flex-direction: row;
