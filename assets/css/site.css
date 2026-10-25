@@ -324,21 +324,6 @@ code {
     color: var(--ink-mute, #57534e);
 }
 
-.authors {
-    margin-top: 2.5rem;
-    padding-top: 1.25rem;
-    border-top: 1px solid var(--line, #d6d3d1);
-    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
-    font-size: 0.8125rem;
-    line-height: 1.6;
-    color: var(--ink-mute, #57534e);
-}
-
-.authors strong {
-    color: var(--ink, #1c1917);
-    font-weight: 600;
-}
-
 .gh-group {
     display: inline-flex;
     align-items: center;
@@ -472,11 +457,18 @@ summary:focus-visible {
     margin-top: 0.5rem;
 }
 
+.api-key-field > .label {
+    text-transform: none;
+    letter-spacing: 0.01em;
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
 .api-key-field input {
     flex: 1;
     min-width: 0;
     border: 1px solid var(--line-strong, #a8a29e);
-    border-radius: var(--radius, 2px) 0 0 var(--radius, 2px);
+    border-radius: var(--radius, 2px);
     background: var(--panel, #ffffff);
     padding: 0.7rem 0.75rem;
     font: 0.875rem var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
@@ -495,16 +487,15 @@ summary:focus-visible {
     box-shadow: 0 0 0 3px var(--accent-soft, #ccfbf1);
 }
 
-.api-key-field .btn {
-    border-left: 0;
-    border-radius: 0 var(--radius, 2px) var(--radius, 2px) 0;
-}
-
 /* Verified connection hides the key input until the key is edited or a run fails. */
 .api-key-field.is-connected > .label,
 .api-key-field.is-connected .api-key-row {
     display: none;
 }
+
+/* API-key auth is disabled temporarily (backend no longer accepts keys):
+   the field carries the hidden attribute in index.html. The rules below
+   stay for re-enabling. */
 
 .api-key-field .api-key-hint {
     margin-top: 0.4rem;
@@ -647,26 +638,24 @@ summary:focus-visible {
 .mode-panel .label {
     margin-bottom: 0.4rem;
     font-weight: 500;
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.025em;
+    font-size: 0.875rem;
+    text-transform: none;
+    letter-spacing: 0.01em;
     color: var(--ink-soft, #44403c);
 }
 
 .param-select-group {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.75rem;
 }
 
 .param-file-status {
-    font-size: 0.875rem;
-    color: var(--ink-soft, #44403c);
-    padding: 0.7rem 0.75rem;
-    border: 1px solid var(--line-strong, #a8a29e);
-    border-radius: var(--radius, 2px);
-    background: var(--panel, #ffffff);
-    flex: 1;
+    margin-top: 0.4rem;
+    font-size: 0.8125rem;
+    color: var(--ink-mute, #57534e);
+    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1411,8 +1400,7 @@ summary:focus-visible {
 .hero .eyebrow,
 .hero .hero-title,
 .hero .hero-sub,
-.hero .hero-grid,
-.hero .authors {
+.hero .hero-grid {
     animation: fade-in-up 0.6s ease both;
 }
 
@@ -1430,10 +1418,6 @@ summary:focus-visible {
 
 .hero .hero-grid {
     animation-delay: 0.45s;
-}
-
-.hero .authors {
-    animation-delay: 0.6s;
 }
 
 .hero .badge {
@@ -1572,7 +1556,6 @@ summary:focus-visible {
     .hero .hero-title,
     .hero .hero-sub,
     .hero .hero-grid,
-    .hero .authors,
     .hero .badge,
     .stage-row.is-done {
         animation: none !important;

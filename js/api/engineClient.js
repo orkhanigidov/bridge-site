@@ -1,7 +1,12 @@
 /**
  * API client for the BRIDGE Engine.
  * API secrets are sent only in request headers, never in URLs.
+ *
+ * API-key authentication is temporarily disabled: the backend no longer
+ * accepts API keys. The key handling below is commented out — restore it
+ * (together with the key field in index.html and js/ui/demo.js) to re-enable.
  */
+
 export class EngineError extends Error {
     constructor(message) {
         super(message);
@@ -15,13 +20,14 @@ const JSON_CONTENT_HEADERS = { 'Content-Type': 'application/json' };
 const REQUEST_TIMEOUT_MS = 180_000;
 const HEALTH_TIMEOUT_MS = 10_000;
 
-function requireApiKey(apiKey) {
-    if (typeof apiKey !== 'string' || !apiKey.trim()) {
-        throw new EngineError('Enter your API secret key first.');
-    }
-
-    return apiKey.trim();
-}
+// --- Disabled temporarily: the backend no longer accepts API keys. ---
+// function requireApiKey(apiKey) {
+//     if (typeof apiKey !== 'string' || !apiKey.trim()) {
+//         throw new EngineError('Enter your API secret key first.');
+//     }
+//
+//     return apiKey.trim();
+// }
 
 async function requestJson(requestUrl, options = {}, timeoutMs = REQUEST_TIMEOUT_MS) {
     const controller = new AbortController();
@@ -80,11 +86,12 @@ export function createEngineClient() {
 
         /** GET /api/health — one call proves connectivity and the API secret. */
         async checkHealth(apiKey) {
-            const key = requireApiKey(apiKey);
+            // --- Disabled temporarily: no X-API-Secret header is sent. ---
+            // const key = requireApiKey(apiKey);
 
-            const responseData = await requestJson(`${ENGINE_BASE_URL}/api/health`, {
+            const responseData = await requestJson(`${ENGINE_BASE_URL}/api/v1/health`, {
                 method: 'GET',
-                headers: { 'X-API-Secret': key },
+                // headers: { 'X-API-Secret': key },
             }, HEALTH_TIMEOUT_MS);
 
             return {
@@ -95,7 +102,8 @@ export function createEngineClient() {
 
         /** POST /api/execute_sequential */
         async executeSequential(apiKey, payload) {
-            const key = requireApiKey(apiKey);
+            // --- Disabled temporarily: no X-API-Secret header is sent. ---
+            // const key = requireApiKey(apiKey);
 
             const requestPayload = {
                 cpp_code: payload.cpp_code,
@@ -104,23 +112,25 @@ export function createEngineClient() {
                 graphml_name: payload.graphml_name || '',
             };
 
-            const responseData = await requestJson(`${ENGINE_BASE_URL}/api/execute_sequential`, {
+            const responseData = await requestJson(`${ENGINE_BASE_URL}/api/v1/execute_sequential`, {
                 method: 'POST',
-                headers: { ...JSON_CONTENT_HEADERS, 'X-API-Secret': key },
+                headers: { ...JSON_CONTENT_HEADERS },
+                // --- Disabled temporarily: X-API-Secret header ---
+                // headers: { ...JSON_CONTENT_HEADERS, 'X-API-Secret': key },
                 body: JSON.stringify(requestPayload),
             });
 
             return {
-                success: Boolean(responseData.success),
-                message: responseData.message || '',
+                success: Boolean(responseData?.success),
+                message: responseData?.message || '',
                 svgs: {
-                    cpp: responseData.cpp_svg || '',
-                    lua: responseData.lua_svg || '',
+                    cpp: responseData?.cpp_svg || '',
+                    lua: responseData?.lua_svg || '',
                 },
                 graphML: {
-                    cpp: responseData.cpp_graphml || '',
-                    lua: responseData.lua_graphml || responseData.graphml ||
-                        responseData.graphml_content || '',
+                    cpp: responseData?.cpp_graphml || '',
+                    lua: responseData?.lua_graphml || responseData?.graphml ||
+                        responseData?.graphml_content || '',
                 },
             };
         },

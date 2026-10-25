@@ -18,7 +18,6 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
     const elements = {
         apiKeyInput: root.querySelector('#api-key'),
         apiKeyField: root.querySelector('.api-key-field'),
-        loadResourcesButton: root.querySelector('#load-resources'),
         methodSelect: root.querySelector('#method-select'),
         graphSelect: root.querySelector('#graph-select'),
         sourceDirect: root.querySelector('#source-direct'),
@@ -189,62 +188,63 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
         graphName: '',
     };
 
-    const API_KEY_STORAGE_KEY = 'bridge_api_secret';
-    const savedApiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
-    if (savedApiKey) {
-        elements.apiKeyInput.value = savedApiKey;
-    } else if (engineConfig.defaultApiKey) {
-        elements.apiKeyInput.value = engineConfig.defaultApiKey;
-    }
-
-    /* ---- engine connection: GET /api/health proves connectivity and the
-       key in one call. ok → green + hidden field; error → red + visible field. ---- */
-    let connectionToken = 0;
-    let healthTimer = 0;
-
-    const setConnectionState = (state, message = '') => {
-        const field = elements.apiKeyField;
-        if (!field) return;
-        field.classList.toggle('is-connected', state === 'ok');
-        field.classList.toggle('is-error', state === 'error');
-
-        let hint = field.querySelector('.api-key-hint');
-        if (!hint) {
-            hint = document.createElement('p');
-            hint.className = 'api-key-hint';
-            field.append(hint);
-        }
-        hint.hidden = !message || state === 'idle';
-        hint.textContent = message;
-        hint.dataset.state = state;
-    };
-
-    const runHealthCheck = async () => {
-        const apiKey = elements.apiKeyInput.value.trim();
-        if (!apiKey) {
-            setConnectionState('idle');
-            return;
-        }
-
-        const token = ++connectionToken;
-        setConnectionState('checking', 'Checking Engine connection...');
-        try {
-            const result = await engineClient.checkHealth(apiKey);
-            if (token !== connectionToken) return;
-            setConnectionState('ok', `Engine connected — ${result.message || 'health check OK'}.`);
-        } catch (error) {
-            if (token !== connectionToken) return;
-            setConnectionState('error', error.message);
-        }
-    };
-
-    elements.apiKeyInput.addEventListener('input', () => {
-        localStorage.setItem(API_KEY_STORAGE_KEY, elements.apiKeyInput.value);
-        // Editing the key revokes the verified state until health passes again.
-        setConnectionState('idle');
-        clearTimeout(healthTimer);
-        healthTimer = setTimeout(runHealthCheck, 600);
-    });
+    // --- Disabled temporarily: the backend no longer accepts API keys. ---
+    // const API_KEY_STORAGE_KEY = 'bridge_api_secret';
+    // const savedApiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
+    // if (savedApiKey) {
+    //     elements.apiKeyInput.value = savedApiKey;
+    // } else if (engineConfig.defaultApiKey) {
+    //     elements.apiKeyInput.value = engineConfig.defaultApiKey;
+    // }
+    //
+    // /* ---- engine connection: GET /api/health proves connectivity and the
+    //    key in one call. ok → green + hidden field; error → red + visible field. ---- */
+    // let connectionToken = 0;
+    // let healthTimer = 0;
+    //
+    // const setConnectionState = (state, message = '') => {
+    //     const field = elements.apiKeyField;
+    //     if (!field) return;
+    //     field.classList.toggle('is-connected', state === 'ok');
+    //     field.classList.toggle('is-error', state === 'error');
+    //
+    //     let hint = field.querySelector('.api-key-hint');
+    //     if (!hint) {
+    //         hint = document.createElement('p');
+    //         hint.className = 'api-key-hint';
+    //         field.append(hint);
+    //     }
+    //     hint.hidden = !message || state === 'idle';
+    //     hint.textContent = message;
+    //     hint.dataset.state = state;
+    // };
+    //
+    // const runHealthCheck = async () => {
+    //     const apiKey = elements.apiKeyInput.value.trim();
+    //     if (!apiKey) {
+    //         setConnectionState('idle');
+    //         return;
+    //     }
+    //
+    //     const token = ++connectionToken;
+    //     setConnectionState('checking', 'Checking Engine connection...');
+    //     try {
+    //         const result = await engineClient.checkHealth(apiKey);
+    //         if (token !== connectionToken) return;
+    //         setConnectionState('ok', `Engine connected — ${result.message || 'health check OK'}.`);
+    //     } catch (error) {
+    //         if (token !== connectionToken) return;
+    //         setConnectionState('error', error.message);
+    //     }
+    // };
+    //
+    // elements.apiKeyInput.addEventListener('input', () => {
+    //     localStorage.setItem(API_KEY_STORAGE_KEY, elements.apiKeyInput.value);
+    //     // Editing the key revokes the verified state until health passes again.
+    //     setConnectionState('idle');
+    //     clearTimeout(healthTimer);
+    //     healthTimer = setTimeout(runHealthCheck, 600);
+    // });
 
 
     /* ---- static panels ---- */
@@ -302,7 +302,6 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
     };
 
     const setBusy = (busy) => {
-        elements.loadResourcesButton.disabled = busy;
         elements.executeButton.disabled = busy;
         elements.executeButton.textContent = busy ? 'Executing…' : 'Execute script';
     };
@@ -531,8 +530,6 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
         }
     }
 
-    elements.loadResourcesButton.addEventListener('click', () => loadResources());
-
     loadResources();
 
     // Initial parameter status from localStorage
@@ -638,13 +635,13 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
             graph3dViewer?.render(`${graphName} · ${EXECUTION_PATH_LABELS[state.activeGraphML]}`,
                 state.graphML[state.activeGraphML] || '');
             setStatus('Completed. Pane A shows the returned SVGs, pane B the returned GraphML layout.', 'succeeded');
-            setConnectionState('ok', 'Engine connected — key verified.');
+            // --- Disabled temporarily: setConnectionState('ok', 'Engine connected — key verified.');
         } catch (error) {
             renderStages(new Set(), 'running');
             elements.stagesSummary.hidden = false;
             elements.stagesSummary.textContent = 'failed';
             setStatus(error.message, 'error');
-            setConnectionState('error', error.message);
+            // --- Disabled temporarily: setConnectionState('error', error.message);
         } finally {
             setBusy(false);
         }
@@ -748,6 +745,6 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
 
     renderSvgOutput('');
 
-    // Initial health check must run after setStatus is defined (TDZ).
-    runHealthCheck();
+    // --- Disabled temporarily: initial health check (no API key needed).
+    // runHealthCheck();
 }

@@ -3,10 +3,16 @@
  */
 
 export const ENGINE_CONFIG = {
+    // API-key authentication is temporarily disabled: the backend no longer
+    // accepts API keys. The key handling is commented out across the site
+    // (index.html, js/ui/demo.js, js/api/engineClient.js) and can be
+    // re-enabled from those comments later.
+    //
+    // --- Disabled temporarily ---
     // Paste the generated API secret key here to pre-fill the demo field.
     // Leave empty to let visitors enter their own key in the demo section instead.
     // Never commit a real key to source control.
-    defaultApiKey: '',
+    // defaultApiKey: '',
 };
 
 /** Guidance rows under "What to compare" — the claims the side-by-side lets a reviewer verify. */

@@ -5,9 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#0f766e">
-    <title>BRIDGE — Connecting OGDF to GAV-VR · Master Thesis</title>
+    <title>BRIDGE — Connecting OGDF to GAV-VR</title>
     <meta name="description"
-        content="BRIDGE: A hybrid architecture connecting OGDF (C++) to GAV-VR (C#) via automated Lua bindings. Dual execution (native P/Invoke & network REST), thread-local Lua state management, and a whitelist security policy. Master thesis, University of Konstanz 2025.">
+        content="BRIDGE: A hybrid architecture connecting OGDF (C++) to GAV-VR (C#) via automated Lua bindings. Dual execution (native P/Invoke & network REST), thread-local Lua state management, and a whitelist security policy.">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -59,7 +59,7 @@
 
         <!-- ============ HERO ============ -->
         <section class="hero container">
-            <p class="eyebrow">Master Thesis · University of Konstanz · 2025</p>
+            <p class="eyebrow">OGDF → BRIDGE → GAV-VR</p>
             <h1 class="hero-title">Run the C++.<br><span class="accent">See the graph.</span></h1>
             <p class="hero-sub">Connecting OGDF to GAV-VR via automated Lua bindings.</p>
             <div class="hero-grid">
@@ -88,25 +88,19 @@
                 </div>
             </div>
 
-            <p class="authors">
-                <strong>Orkhan Igidov</strong> · <strong>Karsten Klein</strong> · <strong>Falk Schreiber</strong>
-                <br>
-                <span>Department of Computer and Information Science · University of Konstanz, Germany</span>
-            </p>
-
             <div class="rq-grid">
                 <div class="rq-card">
-                    <span class="meta-role">RQ1 · Performance</span>
+                    <span class="meta-role">Performance</span>
                     <h3>High-Performance Integration</h3>
                     <p>Integrating unmanaged OGDF (C++) into the managed GAV-VR (C# / Unity) runtime with minimal execution overhead, preserving native graph drawing performance.</p>
                 </div>
                 <div class="rq-card">
-                    <span class="meta-role">RQ2 · Automation</span>
+                    <span class="meta-role">Automation</span>
                     <h3>Automated Binding Pipeline</h3>
                     <p>Leveraging compiler-based AST analysis via LibClang to autonomously generate sol2/Lua bindings, eliminating manual wrapper code and technical debt.</p>
                 </div>
                 <div class="rq-card">
-                    <span class="meta-role">RQ3 · Architecture</span>
+                    <span class="meta-role">Architecture</span>
                     <h3>Scalable Dual Execution</h3>
                     <p>Providing dual execution modes (local native P/Invoke for sub-millisecond VR latency vs. remote REST server for heavy graphs) with Thread-Local Storage (TLS) memory isolation.</p>
                 </div>
@@ -122,8 +116,12 @@
                         <h2 class="demo-title">One case, two paths, side by side</h2>
                         <p class="lead">Pick a predefined C++/Lua layout pair and graph to inspect the code. Connect a running Engine to execute live layouts and compare the C++ vs. Lua results side by side — as dual SVG outputs in Pane A, and as the same dual outputs in an interactive 3D view (Three.js) in Pane B.</p>
                     </div>
-                    <div class="api-key-field">
-                        <label class="label" for="api-key">Engine connection (optional)</label>
+                    <!-- API-key auth disabled temporarily: the backend no longer
+                         accepts API keys. Remove the hidden attribute to re-enable,
+                         together with the commented key handling in js/ui/demo.js,
+                         js/api/engineClient.js, and js/config/siteConfig.js. -->
+                    <div class="api-key-field" hidden>
+                        <label class="label" for="api-key">Engine API key (optional)</label>
                         <div class="api-key-row">
                             <input id="api-key" type="password" autocomplete="off" spellcheck="false"
                                 placeholder="Enter API key to run live Engine">
@@ -151,9 +149,8 @@
                             </select>
                         </div>
                         <div class="control" id="parameters-upload">
-                            <label class="label">ParameterDefinitions.json</label>
+                            <label class="label" for="file-parameters">ParameterDefinitions.json</label>
                             <div class="param-select-group">
-                                <div id="param-file-status" class="param-file-status">No file loaded</div>
                                 <label class="param-upload-btn">
                                     Upload
                                     <input type="file" id="file-parameters" accept=".json,application/json"
@@ -164,6 +161,7 @@
                                     Download default
                                 </a>
                             </div>
+                            <div id="param-file-status" class="param-file-status">No file loaded</div>
                         </div>
                     </div>
 
@@ -230,7 +228,7 @@
 
                     <div class="custom-foot">
                         <p class="mode-note">Both sources are sent to the Engine for execution via
-                            <code>/api/execute_script</code>. The Engine enforces a whitelist sandbox — only
+                            <code>/api/v1/execute_script</code>. The Engine enforces a whitelist sandbox — only
                             <code>base, math, table, string</code> libraries are loaded.
                         </p>
                         <button id="run-custom" class="btn btn--primary" type="button">Execute script</button>
@@ -346,7 +344,7 @@
                     <div class="contract-grid">
                         <div>
                             <p class="label">Endpoint</p>
-                            <p><code>POST /api/execute_script</code> — the Engine's single documented route
+                            <p><code>POST /api/v1/execute_script</code> — the Engine's single documented route
                                 (mirroring the C++ ExecutionController). The request carries the Lua script name,
                                 the input graph, and script parameters.
                             </p>
@@ -828,7 +826,7 @@
 <span class="t-prompt">$</span> ./Engine.exe --host 0.0.0.0 --port 8000
 
 <span class="t-comment"># In GAV-VR: Options Panel → Execution Mode → Native/Network</span>
-<span class="t-comment"># NetworkConfiguration.json: { "host": "localhost", "port": 8000, "endpoint": "/api/execute_script" }</span>
+<span class="t-comment"># NetworkConfiguration.json: { "host": "localhost", "port": 8000, "endpoint": "/api/v1/execute_script" }</span>
 
 <span class="t-comment"># Optional Docker (exposes port 8000):</span>
 <span class="t-prompt">$</span> docker run --rm -p 8000:8000 -v $PWD/data:/data bridge-engine:latest</code></pre>
@@ -853,11 +851,11 @@
                                             <path d="M11 5V2H2v9h3" stroke="currentColor" stroke-width="1.5" />
                                         </svg><span data-copy-label>Copy</span></button>
                                 </div>
-                                <pre><code><span class="t-prompt">$</span> curl -X POST &lt;engine-host&gt;:8000/api/execute_script \
+                                <pre><code><span class="t-prompt">$</span> curl -X POST &lt;engine-host&gt;:8000/api/v1/execute_script \
      -H 'Content-Type: application/json' \
      -d '{"script": "hierarchical.lua", "input": "n100e100.graphml", "params": {"layerDistance": 3.0, "nodeDistance": 3.0}}'
 <span class="t-comment"># AWS API Gateway (IAM SigV4 signing required):</span>
-<span class="t-prompt">$</span> curl -X POST &lt;gateway-host&gt;/api/execute_script \
+<span class="t-prompt">$</span> curl -X POST &lt;gateway-host&gt;/api/v1/execute_script \
      -H 'Authorization: AWS4-HMAC-SHA256 ...' -d '...'</code></pre>
                             </div>
                         </div>
