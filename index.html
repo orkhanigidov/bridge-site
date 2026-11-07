@@ -425,7 +425,8 @@
                     <p class="lead">
                         BRIDGE is a hybrid integration architecture, not a second implementation of OGDF. It uses a
                         three-layered approach: (1) an <strong>Automatic Binding Generation Tool</strong> that parses
-                        OGDF headers via LibClang AST analysis and generates sol2/Lua bindings from YAML configuration,
+                        OGDF headers via LibClang AST analysis and generates sol2/Lua bindings from a declarative
+                        <code>bindings_config.yaml</code> configuration,
                         (2) a <strong>BRIDGE Engine</strong> with dual execution modes — Native Interface (P/Invoke for
                         low-latency local execution) and Network Interface (cloud offloading for compute-intensive
                         tasks), and (3) a <strong>C# Client</strong> in GAV-VR managing execution strategies and UI.
@@ -773,7 +774,9 @@
                         <span class="step-num">Step 1</span>
                         <div>
                             <h3>Build BRIDGE</h3>
-                            <p>Clone the repository and compile the BRIDGE components with the bootstrap script.</p>
+                            <p>Clone the repository, declare the OGDF classes, functions and enums to expose in
+                                <code>bindings_config.yaml</code>, and compile — the bootstrap script runs Codegen on
+                                that file as a pre-build step.</p>
                             <div class="codeblock codeblock--flat" data-copy-scope>
                                 <div class="codeblock-head"><span class="terminal-dots" aria-hidden="true"><span
                                             class="terminal-dot terminal-dot--red"></span><span
@@ -790,10 +793,41 @@
                                 <pre><code><span class="t-prompt">$</span> git clone &lt;repository-url&gt; &amp;&amp; cd bridge
 <span class="t-prompt">$</span> cp .env.example .env
 <span class="t-comment"># edit .env: LIBRARY_INCLUDE_PATH, WRAPPER_DIR, UNITY_PROJECT_PATH</span>
+<span class="t-comment"># edit bindings_config.yaml: classes, free_functions, enums to expose</span>
 <span class="t-comment"># Windows (PowerShell):</span>
 <span class="t-prompt">$</span> ./bootstrap.ps1 -BuildType Release -InstallDeps
 <span class="t-comment"># Linux:</span>
 <span class="t-prompt">$</span> sudo ./bootstrap.sh --build-type Release --install-deps</code></pre>
+                            </div>
+                            <div class="codeblock" data-copy-scope>
+                                <div class="codeblock-head"><span class="codeblock-title">bindings_config.yaml</span>
+                                    <button class="copy-btn" type="button" data-copy
+                                        aria-label="Copy example configuration"><svg width="12" height="12"
+                                            viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                            <rect x="5" y="5" width="9" height="9" stroke="currentColor"
+                                                stroke-width="1.5" />
+                                            <path d="M11 5V2H2v9h3" stroke="currentColor" stroke-width="1.5" />
+                                        </svg><span data-copy-label>Copy</span></button>
+                                </div>
+<pre><code><span class="t-comment"># OGDF entities to expose to Lua — member variables, properties</span>
+<span class="t-comment"># and nested enums of a class are detected and bound automatically.</span>
+classes:
+  - name: Graph
+    methods:
+      - numberOfNodes
+  - name: SugiyamaLayout
+    methods:
+      - setRanking
+      - setLayout
+      - call
+  - name: PlanarSubgraphFast
+    types:
+      - int<span class="t-comment">  # → Lua class PlanarSubgraphFastInt</span>
+free_functions:
+  - randomSimpleGraph
+  - drawSVG
+enums:
+  - RemoveReinsertType</code></pre>
                             </div>
                         </div>
                     </div>
