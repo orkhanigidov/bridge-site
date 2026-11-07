@@ -412,7 +412,7 @@ code {
 }
 
 /* Focus visible - unified token-based */
-:where(.btn, .tab, .stepper-button, .copy-btn, .nav-link, .brand, .expand-btn):focus-visible {
+:where(.btn, .stepper-button, .copy-btn, .nav-link, .brand, .expand-btn):focus-visible {
     outline: var(--focus-ring, 2px solid #0f766e);
     outline-offset: var(--focus-offset, 2px);
 }
@@ -508,44 +508,12 @@ summary:focus-visible {
     border-color: #b91c1c;
 }
 
-.tabs {
-    display: inline-flex;
-    border: 1px solid var(--line-strong, #a8a29e);
-    border-radius: var(--radius, 2px);
-    overflow: hidden;
-}
-
 /* Ensure focus outlines are not clipped by overflow:hidden containers */
-.tabs:focus-within,
 .pane-body:focus-within,
 .codeblock:focus-within,
 .figure:focus-within,
 .editor:focus-within {
     overflow: visible;
-}
-
-.tab {
-    border: 0;
-    background: var(--panel, #ffffff);
-    color: var(--ink-soft, #44403c);
-    padding: 0.7rem 1.1rem;
-    font: 500 0.875rem var(--font-sans, "Space Grotesk", ui-sans-serif, system-ui, sans-serif);
-    cursor: pointer;
-    transition: background-color var(--transition-fast, 0.15s ease), color var(--transition-fast, 0.15s ease);
-}
-
-.tab+.tab {
-    border-left: 1px solid var(--line-strong, #a8a29e);
-}
-
-.tab:hover {
-    background: var(--band, #f5f5f4);
-    color: var(--ink, #1c1917);
-}
-
-.tab.is-active {
-    background: var(--ink, #1c1917);
-    color: var(--panel, #ffffff);
 }
 
 .mode-panel {
@@ -1022,15 +990,6 @@ summary:focus-visible {
     font-size: 0.75rem;
     letter-spacing: 0.08em;
     color: var(--ink-soft, #44403c);
-}
-
-.tabs--accent {
-    border-color: var(--line-strong, #a8a29e);
-}
-
-.tabs--accent .tab {
-    padding: 0.35rem 0.7rem;
-    font-size: 0.75rem;
 }
 
 .codeblock pre {

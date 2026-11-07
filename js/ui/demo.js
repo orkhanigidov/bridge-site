@@ -8,7 +8,6 @@ import {
     EXECUTION_STAGES,
     METHOD_GRAPH_COMPATIBILITY,
 } from '../config/siteConfig.js';
-import { initCodeTabs } from './codeTabs.js';
 import { renderSvgGraph } from './svgGraphViewer.js';
 import { createParameterForm } from './parameters.js';
 
@@ -45,12 +44,6 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
         stagesSummary: root.querySelector('#stages-summary'),
         panelCase: root.querySelector('#panel-case'),
     };
-
-    const codeTabs = initCodeTabs({
-        tabDirect: root.querySelector('#tab-cxx'),
-        tabBridge: root.querySelector('#tab-lua'),
-        codeView: root.querySelector('#code-view'),
-    });
 
     const PARAM_DEFS_STORAGE_KEY = 'bridge_parameter_definitions';
 
@@ -165,7 +158,6 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
         }
 
         elements.sourceBridge.value = source;
-        codeTabs.setSource('bridge', source);
         parameterAnchors.set(id, { literal, offset: injectedAt });
         parameterForm.markSubstituted(id);
         return true;
@@ -391,8 +383,6 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
             // Predefined source: no longer custom code.
             state.isCustomCode = false;
 
-            codeTabs.setSource('direct', elements.sourceDirect.value);
-            codeTabs.setSource('bridge', elements.sourceBridge.value);
             // Fresh script: forget field→code injections from the previous one.
             parameterAnchors.clear();
             // Show fields only for the `_id` parameters this script references.
@@ -590,8 +580,6 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
             // Custom code may still hold placeholders — resolve before sending.
             elements.sourceDirect.value = substituteGraphPaths(elements.sourceDirect.value, graphName);
             elements.sourceBridge.value = substituteGraphPaths(elements.sourceBridge.value, graphName);
-            codeTabs.setSource('direct', elements.sourceDirect.value);
-            codeTabs.setSource('bridge', elements.sourceBridge.value);
 
             // Fetch the GraphML content.
             const graphMLContent = await fetch(`examples/graphml/${graphName}`, { cache: 'no-store' }).then(r => {
@@ -653,12 +641,10 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
 
     elements.sourceDirect.addEventListener('input', () => {
         state.isCustomCode = true;
-        codeTabs.setSource('direct', elements.sourceDirect.value);
     });
 
     elements.sourceBridge.addEventListener('input', () => {
         state.isCustomCode = true;
-        codeTabs.setSource('bridge', elements.sourceBridge.value);
         // Live re-scan on manual edits. Fields already substituted into the code
         // stay visible (sticky), so editing injected literals keeps them usable.
         clearTimeout(parameterScanTimer);
