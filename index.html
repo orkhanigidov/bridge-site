@@ -103,7 +103,9 @@
                 <div class="rq-card">
                     <span class="meta-role">Automation</span>
                     <h2>Automated Binding Pipeline</h2>
-                    <p>Leveraging compiler-based AST analysis via LibClang to autonomously generate sol2/Lua bindings, eliminating manual wrapper code and technical debt.</p>
+                    <p>Leveraging compiler-based AST analysis via LibClang to autonomously generate sol2/Lua
+                        bindings, eliminating manual wrapper code and technical debt. The analysis is
+                        target-agnostic — future Python or JavaScript backends would reuse it unchanged.</p>
                 </div>
                 <div class="rq-card">
                     <span class="meta-role">Architecture</span>
@@ -430,8 +432,9 @@
                         (2) a <strong>BRIDGE Engine</strong> with dual execution modes — Native Interface (P/Invoke for
                         low-latency local execution) and Network Interface (cloud offloading for compute-intensive
                         tasks), and (3) a <strong>C# Client</strong> in GAV-VR managing execution strategies and UI.
-                        Thread-local Lua state (TLS) ensures memory safety and concurrency; a strict whitelist policy
-                        enforces security. The design is constrained by VR's requirement of a minimum 72 frames per
+                        Thread-local Lua state (TLS) ensures memory safety and concurrency, and the generated
+                        bindings infer each class's memory ownership so Lua's garbage collector never frees objects
+                        the Engine manages; a strict whitelist policy enforces security. The design is constrained by VR's requirement of a minimum 72 frames per
                         second: heavy graph processing must never block the main rendering thread, which is why the
                         client runs all layout work asynchronously.
                     </p>
@@ -747,6 +750,10 @@
                     <li><strong>Scale:</strong> Graphs with about 1,000 nodes need server-side layout, and
                         rendering that many GameObjects causes frame drops in VR. Level-of-detail clustering is
                         future work.</li>
+                    <li><strong>Validity:</strong> Benchmarks ran in local Docker (no wide-area latency), on a
+                        subset of OGDF's algorithms, from a single client host, and without a monolithic C++
+                        baseline — the metrics prove internal stability and scalability, not relative gains over
+                        alternative architectures.</li>
                 </ul>
 
                 <p class="section-footnote">
@@ -776,7 +783,9 @@
                             <h3>Build BRIDGE</h3>
                             <p>Clone the repository, declare the OGDF classes, functions and enums to expose in
                                 <code>bindings_config.yaml</code>, and compile — the bootstrap script runs Codegen on
-                                that file as a pre-build step.</p>
+                                that file as a pre-build step. Hand-written C++ wrappers and manual sol2
+                                registrations are picked up automatically for the cases the generator cannot resolve
+                                on its own.</p>
                             <div class="codeblock codeblock--flat" data-copy-scope>
                                 <div class="codeblock-head"><span class="terminal-dots" aria-hidden="true"><span
                                             class="terminal-dot terminal-dot--red"></span><span
@@ -792,7 +801,7 @@
                                 </div>
                                 <pre><code><span class="t-prompt">$</span> git clone &lt;repository-url&gt; &amp;&amp; cd bridge
 <span class="t-prompt">$</span> cp .env.example .env
-<span class="t-comment"># edit .env: LIBRARY_INCLUDE_PATH, WRAPPER_DIR, UNITY_PROJECT_PATH</span>
+<span class="t-comment"># edit .env: LIBRARY_INCLUDE_PATH, WRAPPER_DIR, MANUAL_REGISTER_DIR, UNITY_PROJECT_PATH</span>
 <span class="t-comment"># edit bindings_config.yaml: classes, free_functions, enums to expose</span>
 <span class="t-comment"># Windows (PowerShell):</span>
 <span class="t-prompt">$</span> ./bootstrap.ps1 -BuildType Release -InstallDeps
