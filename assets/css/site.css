@@ -795,6 +795,25 @@ summary:focus-visible {
     font-weight: 500;
 }
 
+/* engine health states (js/ui/demo.js runHealthCheck) */
+.status[data-state="ready"] {
+    border-left-color: #15803d;
+}
+
+.status[data-state="ready"] .status-job {
+    color: #14532d;
+    background: #dcfce7;
+}
+
+.status[data-state="offline"] {
+    border-left-color: #b91c1c;
+}
+
+.status[data-state="offline"] .status-job {
+    color: #991b1b;
+    background: #fee2e2;
+}
+
 /* ============ panes ============ */
 .panes {
     margin-top: 2.25rem;

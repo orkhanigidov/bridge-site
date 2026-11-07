@@ -39,6 +39,7 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
         closeEditorButton: root.querySelector('#close-editor'),
         statusMessage: root.querySelector('#status-message'),
         statusJob: root.querySelector('#status-job'),
+        status: root.querySelector('#status'),
         checksList: root.querySelector('#checks-list'),
         stagesList: root.querySelector('#stages-list'),
         stagesSummary: root.querySelector('#stages-summary'),
@@ -230,13 +231,44 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
     //     }
     // };
     //
-    // elements.apiKeyInput.addEventListener('input', () => {
-    //     localStorage.setItem(API_KEY_STORAGE_KEY, elements.apiKeyInput.value);
-    //     // Editing the key revokes the verified state until health passes again.
-    //     setConnectionState('idle');
-    //     clearTimeout(healthTimer);
-    //     healthTimer = setTimeout(runHealthCheck, 600);
-    // });
+// elements.apiKeyInput.addEventListener('input', () => {
+//     localStorage.setItem(API_KEY_STORAGE_KEY, elements.apiKeyInput.value);
+//     // Editing the key revokes the verified state until health passes again.
+//     setConnectionState('idle');
+//     clearTimeout(healthTimer);
+//     healthTimer = setTimeout(runHealthCheck, 600);
+// });
+
+    /* ---- engine health: one GET /api/v1/health at startup shows whether
+       the live-demo backend is reachable right now (no API key needed). ---- */
+    let healthToken = 0;
+    // True only while a visitor-triggered execute runs — the startup example
+    // load also flips setBusy, but must not swallow the health report.
+    let engineRunActive = false;
+    const setHealthState = (state) => {
+        if (state) elements.status.dataset.state = state;
+        else elements.status.removeAttribute('data-state');
+    };
+
+    const runHealthCheck = async () => {
+        const token = ++healthToken;
+        setStatus('Checking Engine connection...');
+        try {
+            const result = await engineClient.checkHealth();
+            if (token !== healthToken || engineRunActive) return;
+            if (!result.ok) {
+                setHealthState('offline');
+                setStatus(`Engine reported a problem: ${result.message || 'health check failed'}`, 'offline');
+                return;
+            }
+            setHealthState('ready');
+            setStatus(`Engine connected${result.message ? ` — ${result.message}` : ''}`, 'ready');
+        } catch (error) {
+            if (token !== healthToken || engineRunActive) return;
+            setHealthState('offline');
+            setStatus(`Engine unreachable: ${error.message}`, 'offline');
+        }
+    };
 
 
     /* ---- static panels ---- */
@@ -575,6 +607,9 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
 
         try {
             setBusy(true);
+            engineRunActive = true;
+            setHealthState(null); // the run's own status replaces the startup health report
+            graph3dViewer?.preload?.(); // warm the 3D libraries while the Engine runs
             setStatus(`Fetching GraphML content for ${graphName}...`);
 
             // Custom code may still hold placeholders — resolve before sending.
@@ -631,6 +666,7 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
             setStatus(error.message, 'error');
             // --- Disabled temporarily: setConnectionState('error', error.message);
         } finally {
+            engineRunActive = false;
             setBusy(false);
         }
     }
@@ -731,6 +767,5 @@ export function initDemo(root, engineClient, engineConfig, graph3dViewer) {
 
     renderSvgOutput('');
 
-    // --- Disabled temporarily: initial health check (no API key needed).
-    // runHealthCheck();
+    runHealthCheck();
 }
