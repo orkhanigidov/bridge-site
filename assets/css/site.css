@@ -155,6 +155,7 @@ code {
 
 .header-inner {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 1.25rem;
@@ -210,7 +211,7 @@ code {
     outline-offset: var(--focus-offset, 2px);
 }
 
-@media (min-width: 48rem) {
+@media (min-width: 80rem) {
     .nav {
         display: flex;
     }
@@ -336,6 +337,13 @@ code {
 
 .star-badge-link img {
     display: block;
+}
+
+/* The stars badge only fits once the header has room to spare. */
+@media (max-width: 47.999rem) {
+    .star-badge-link {
+        display: none;
+    }
 }
 
 /* ============ buttons ============ */
@@ -810,7 +818,7 @@ summary:focus-visible {
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    height: 3rem;
+    min-height: 3rem;
     padding-bottom: 0.75rem;
     border-bottom: 1px solid var(--line, #d6d3d1);
     margin-bottom: 0.75rem;
@@ -1085,13 +1093,14 @@ summary:focus-visible {
 
 .about {
     margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line, #d6d3d1);
     font-size: 0.875rem;
     color: var(--ink-soft, #44403c);
 }
 
-.about summary {
-    cursor: pointer;
-    font-weight: 500;
+.about .label {
+    margin: 0;
 }
 
 .about p {
@@ -1198,7 +1207,7 @@ summary:focus-visible {
     z-index: 2;
     padding: 0.25rem 0.5rem;
     font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--panel, #ffffff);
@@ -1251,6 +1260,26 @@ summary:focus-visible {
     overflow-x: hidden;
     max-width: 100%;
     clear: both;
+}
+
+/* Narrow screens: scroll figures instead of shrinking the SVG below
+   readable text sizes. */
+@media (max-width: 63.999rem) {
+    .figure {
+        overflow-x: auto;
+    }
+
+    .figure svg {
+        min-width: 60rem;
+    }
+
+    .figure.arch-inline {
+        overflow-x: auto;
+    }
+
+    .arch-inline .arch-svg {
+        min-width: 84rem;
+    }
 }
 
 #architecture .figure {
@@ -1808,7 +1837,7 @@ summary:focus-visible {
 
 .side-tag {
     font-family: var(--font-mono);
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     padding: 0.2rem 0.55rem;
@@ -1853,8 +1882,9 @@ summary:focus-visible {
 .graph-btn {
     border: 1px solid var(--line-strong);
     background: var(--panel);
-    font: 500 0.7rem var(--font-mono);
+    font: 500 0.75rem var(--font-mono);
     color: var(--ink-soft);
+    min-height: 2rem;
     padding: 0.2rem 0.5rem;
     cursor: pointer;
 }
@@ -1973,7 +2003,7 @@ summary:focus-visible {
     border-radius: var(--radius, 2px);
     background: rgba(255, 255, 255, 0.9);
     color: var(--ink-soft, #44403c);
-    font: 0.7rem var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font: 0.75rem var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
     overflow-wrap: anywhere;
     pointer-events: none;
 }
@@ -1993,7 +2023,7 @@ summary:focus-visible {
     background: var(--panel, #fff);
     padding: 0.4rem 0.8rem;
     font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     font-weight: 500;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -2239,7 +2269,7 @@ summary:focus-visible {
     padding: 1rem 0.75rem 1rem 1rem;
     min-width: 3rem;
     text-align: right;
-    color: #78716c;
+    color: #a8a29e;
     background: #292524;
     overflow: hidden;
     user-select: none;
@@ -2536,7 +2566,7 @@ summary:focus-visible {
 
 .meta-role {
     font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.12em;
     color: var(--accent-deep, #134e4a);
@@ -2566,10 +2596,11 @@ summary:focus-visible {
     box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05));
 }
 
-.rq-card h3 {
+.rq-card h2 {
     font-size: 1.0625rem;
     font-weight: 600;
     line-height: 1.3;
+    letter-spacing: 0;
 }
 
 .rq-card p {
@@ -2670,7 +2701,7 @@ summary:focus-visible {
     display: inline-block;
     padding: 0.2rem 0.5rem;
     font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     font-weight: 500;
     border-radius: var(--radius, 2px);
     text-transform: uppercase;
@@ -2781,13 +2812,13 @@ summary:focus-visible {
 }
 
 .arch-svg text {
-    font-size: 12px;
+    font-size: 13px;
     fill: var(--ink, #1c1917);
 }
 
 .arch-col-title {
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 15px !important;
+    font-size: 16px !important;
     font-weight: 600;
     fill: var(--accent-deep, #134e4a) !important;
 }
@@ -2808,7 +2839,7 @@ summary:focus-visible {
 
 .arch-group-title {
     font-family: 'Space Grotesk', sans-serif;
-    font-size: 12px !important;
+    font-size: 13px !important;
     font-weight: 600;
     fill: var(--ink-mute, #57534e) !important;
 }
@@ -2854,7 +2885,7 @@ summary:focus-visible {
 }
 
 .arch-edge-label {
-    font-size: 10.5px !important;
+    font-size: 11.5px !important;
     fill: var(--accent-deep, #134e4a) !important;
     paint-order: stroke;
     stroke: #ffffff;
@@ -2890,4 +2921,21 @@ summary:focus-visible {
     border-top: 1px solid var(--line, #d6d3d1);
     font-size: 0.8125rem;
     color: var(--ink-mute, #57534e);
+}
+
+/* ============ iOS zoom-on-focus ============ */
+/* iOS Safari zooms the page when a focused field's font is < 16px;
+   keep every focusable field at 1rem on phones. */
+@media (max-width: 47.999rem) {
+
+    .mode-panel select,
+    .mode-panel input,
+    .api-key-field input,
+    .editor textarea,
+    .code-editor textarea,
+    .graph3d-search,
+    #layout-parameters .param-control select,
+    #layout-parameters .param-control input {
+        font-size: 1rem;
+    }
 }

@@ -8,6 +8,12 @@
     <title>BRIDGE — Connecting OGDF to GAV-VR</title>
     <meta name="description"
         content="BRIDGE: A hybrid architecture connecting OGDF (C++) to GAV-VR (C#) via automated Lua bindings. Dual execution (native P/Invoke & network REST), thread-local Lua state management, and a whitelist security policy.">
+    <meta property="og:title" content="BRIDGE — Connecting OGDF to GAV-VR">
+    <meta property="og:description"
+        content="A hybrid architecture connecting OGDF (C++) to GAV-VR (C#) via automated Lua bindings. Dual execution, thread-local Lua state management, and a whitelist security policy.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://bridgeengine.tech/">
+    <meta name="twitter:card" content="summary">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -91,17 +97,17 @@
             <div class="rq-grid">
                 <div class="rq-card">
                     <span class="meta-role">Performance</span>
-                    <h3>High-Performance Integration</h3>
+                    <h2>High-Performance Integration</h2>
                     <p>Integrating unmanaged OGDF (C++) into the managed GAV-VR (C# / Unity) runtime with minimal execution overhead, preserving native graph drawing performance.</p>
                 </div>
                 <div class="rq-card">
                     <span class="meta-role">Automation</span>
-                    <h3>Automated Binding Pipeline</h3>
+                    <h2>Automated Binding Pipeline</h2>
                     <p>Leveraging compiler-based AST analysis via LibClang to autonomously generate sol2/Lua bindings, eliminating manual wrapper code and technical debt.</p>
                 </div>
                 <div class="rq-card">
                     <span class="meta-role">Architecture</span>
-                    <h3>Scalable Dual Execution</h3>
+                    <h2>Scalable Dual Execution</h2>
                     <p>Providing dual execution modes (local native P/Invoke for sub-millisecond VR latency vs. remote REST server for heavy graphs) with Thread-Local Storage (TLS) memory isolation.</p>
                 </div>
             </div>
@@ -359,8 +365,8 @@
                     </div>
                 </details>
 
-                <details class="about">
-                    <summary>About this demo</summary>
+                <div class="about">
+                    <p class="label">About this demo</p>
                     <p>
                         Pane A renders only the SVG the Engine returns; until the Engine is connected it stays empty —
                         that is the correct state, and the page ships no sample graphs. Pane B parses GraphML files
@@ -371,7 +377,7 @@
                         with node coordinates and edges returned to this page unmodified. The Engine enforces a
                         whitelist sandbox and a fresh Lua state per execution.
                     </p>
-                </details>
+                </div>
             </div>
         </section>
 
@@ -633,7 +639,7 @@
                 <div class="rq-grid" style="margin-top: 1.5rem;">
                     <div class="rq-card">
                         <span class="meta-role">Concurrency</span>
-                        <h3>Isolation under load</h3>
+                        <h2>Isolation under load</h2>
                         <p>Each server thread owns an isolated Lua VM via thread-local state — no global locks.
                             At 100 concurrent threads the I/O-bound workload (1.2 MB graphs) completed with a
                             0.0% error rate at ~64 req/s; CPU-bound throughput peaked at 323.85 req/s. The rare
@@ -642,7 +648,7 @@
                     </div>
                     <div class="rq-card">
                         <span class="meta-role">Memory</span>
-                        <h3>No linear leaks</h3>
+                        <h2>No linear leaks</h2>
                         <p>Resident Set Size was monitored via the Docker statistics API across 500 to 2,000
                             sequential requests in three stress scenarios (heavy object churn, fragmentation,
                             large buffers). Growth plateaued in all three — characteristic of Lua 5.4's incremental
@@ -650,7 +656,7 @@
                     </div>
                     <div class="rq-card">
                         <span class="meta-role">Sandbox</span>
-                        <h3>Restricted Lua environment</h3>
+                        <h2>Restricted Lua environment</h2>
                         <p>Five injected payloads — <code>os.execute</code>, <code>io.open</code>, dynamic
                             table-name reconstruction, <code>load()</code>, and an infinite loop — were all
                             neutralized. The whitelist loads only <code>base, math, table, string</code>, so
