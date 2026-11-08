@@ -9,13 +9,7 @@
     <meta name="description"
         content="Privacy policy for bridgeengine.tech: cookieless analytics, live demo data handling, and the third-party services used by the site.">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" as="style"
-        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
-        rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/fonts.css">
     <link rel="stylesheet" href="assets/css/site.css">
 </head>
 
@@ -34,13 +28,13 @@
     </header>
 
     <main>
-        <section class="band band--light">
+        <section class="band band--light" id="policy">
             <div class="container policy">
                 <div class="section-head">
                     <p class="eyebrow">Legal</p>
                     <h1>Privacy Policy</h1>
                     <p class="lead">
-                        How bridgeengine.tech handles data. Last updated: 25 October 2026.
+                        How bridgeengine.tech handles data. Last updated: 8 November 2026.
                     </p>
                 </div>
 
@@ -83,9 +77,18 @@
                         cookies to verify legitimate visitors without storing personal information.
                     </li>
                     <li>
-                        <strong>Fonts and libraries.</strong> Fonts and the JavaScript libraries are
-                        loaded from Google Fonts and the esm.sh CDN; your IP address is transmitted to these
-                        providers to deliver the files.
+                        <strong>Fonts and libraries.</strong> The web fonts (Space Grotesk, IBM Plex Mono) are
+                        served directly from this website and send no requests to third parties. The JavaScript
+                        libraries for the 3D graph viewer are loaded from the esm.sh CDN; your IP address is
+                        transmitted to that provider to deliver the files.
+                    </li>
+                    <li>
+                        <strong>Embedded media and badges.</strong> The video section loads its preview
+                        thumbnail from i.ytimg.com. When the section approaches the viewport, a muted looping
+                        preview player is loaded from YouTube's privacy-enhanced domain
+                        (youtube-nocookie.com); clicking the video loads the full player. The header's star
+                        badge is an image loaded from img.shields.io. These providers receive the standard
+                        request data (for example your IP address) when their content loads.
                     </li>
                     <li>
                         <strong>Analytics.</strong> Umami Cloud, as described above.

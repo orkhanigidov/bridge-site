@@ -15,17 +15,20 @@ Built as the companion site for the master thesis *"Connecting OGDF to GAV-VR â€
 ```
 index.html          Main single-page site
 privacy.html        Privacy policy
-assets/css/         Styles
+404.html            404 page for GitHub Pages
+assets/css/         Styles (fonts.css, site.css)
+assets/fonts/       Self-hosted web fonts (woff2)
 js/
   main.js           Entry point
   api/              Engine client (REST calls to the runner)
   config/           Site configuration (compatibility matrix, stages, links)
-  graph/            GraphML parser + 3D graph viewer (three.js)
+  graph/            GraphML parser + 3D graph viewer (three.js, loaded on demand)
   ui/               Demo controls, code tabs, parameter forms, etc.
 examples/
   cpp/              C++ sources for the case studies
   lua/              Lua sources for the case studies
   graphml/          Example graphs
+tools/              One-off maintenance scripts (e.g. selfhost-fonts.py)
 ```
 
 ## Running locally
@@ -47,4 +50,4 @@ Site-wide settings live in `js/config/siteConfig.js`:
 
 ## Tech
 
-Plain HTML/CSS/JS (ES modules), [three.js](https://threejs.org) via import map for the 3D viewer, no framework, no build tooling.
+Plain HTML/CSS/JS (ES modules), [three.js](https://threejs.org) via import map for the 3D viewer (loaded lazily, only when a 3D render is requested), no framework, no build tooling. Web fonts are self-hosted; regenerate with `tools/selfhost-fonts.py` if they change.
