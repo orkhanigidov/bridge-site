@@ -4,7 +4,24 @@ const ACCENT_COLOR = '#0f766e';
 const LINK_COLOR = '#57534e';
 const NODE_PALETTE = ['#0f766e', '#2563eb', '#b45309', '#7c3aed', '#be123c', '#0f766e'];
 const INITIAL_MESSAGE = 'Run the Engine to explore its GraphML result.';
-const THREE = window.THREE;
+const GRAPH3D_LIBS_URL = 'https://esm.sh/3d-force-graph@1.80.1?external=three';
+
+/* three.js and 3d-force-graph load on demand — only when a 3D render is
+   requested — so they never block the initial page view. */
+let THREE = null;
+let libsPromise = null;
+
+function loadGraphLibraries() {
+    if (!libsPromise) {
+        libsPromise = (async () => {
+            window.THREE = await import('three');
+            THREE = window.THREE;
+            const { default: ForceGraph3D } = await import(GRAPH3D_LIBS_URL);
+            window.ForceGraph3D = ForceGraph3D;
+        })();
+    }
+    return libsPromise;
+}
 
 function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, (character) => ({
@@ -495,13 +512,11 @@ export function createGraph3dViewer({ stageSelector, metaSelector }) {
         return true;
     }
 
-    function ensureGraph() {
+    async function ensureGraph() {
         if (graph) return graph;
-        if (typeof window.ForceGraph3D !== 'function') {
+        await loadGraphLibraries();
+        if (typeof window.ForceGraph3D !== 'function' || !THREE) {
             throw new Error('The 3D graph library did not load. Check the network connection and refresh.');
-        }
-        if (!THREE) {
-            throw new Error('Three.js did not load. Check the network connection and refresh.');
         }
 
         graph = new window.ForceGraph3D(stage, { controlType: 'orbit' })
@@ -571,6 +586,7 @@ export function createGraph3dViewer({ stageSelector, metaSelector }) {
     }
 
     function clear(message = INITIAL_MESSAGE) {
+        renderToken++; // cancels a render still waiting for the libraries to load
         controls?.dispose();
         controls = null;
         fitPending = false;
@@ -590,42 +606,54 @@ export function createGraph3dViewer({ stageSelector, metaSelector }) {
 
     metaEl.textContent = INITIAL_MESSAGE;
 
+    let renderToken = 0;
+
     return {
         clear,
+        /** Warm the 3D libraries in the background (e.g. when a run starts). */
+        preload() {
+            loadGraphLibraries().catch(() => { /* the next render reports the failure */ });
+        },
         render(name, graphMLText) {
             clear();
-            if (!graphMLText || !graphMLText.trim()) {
-                metaEl.textContent = 'The Engine response did not include GraphML data — ' +
-                    'check the field mapped to "graphml" in js/api/engineClient.js.';
-                return;
-            }
-            try {
-                const parsed = parseGraphML(graphMLText);
-                const data = prepareGraphData(parsed);
-                const renderer = ensureGraph();
-                controls = createControls(stage, renderer, metaEl, fitGraph);
-                controls.setNodes(data.nodes);
-                renderer.enableNodeDrag(!data.hasCoordinates);
-                fitPending = true;
-                fitOnEngineStop = !data.hasCoordinates;
-                renderer
-                    .nodeColor((node) => getNodeColor(node))
-                    .graphData(data);
-                requestAnimationFrame(() => requestAnimationFrame(() => {
-                    if (fitPending && fitGraph(true)) fitPending = false;
-                }));
-                const nodeCount = `${data.nodeCount} ${data.nodeCount === 1 ? 'node' : 'nodes'}`;
-                const edgeCount = `${data.edgeCount} ${data.edgeCount === 1 ? 'edge' : 'edges'}`;
-                metaEl.textContent = `${name} · ${nodeCount} · ${edgeCount} · ` +
-                    (data.hasCoordinates
-                        ? 'GraphML coordinates preserved · 3D navigation enabled'
-                        : '3D force-directed layout');
-            } catch (error) {
-                metaEl.textContent = error.message.includes('WebGLRenderer')
-                    ? `Could not render ${name}: WebGL is unavailable in this browser or device. ` +
-                        error.message
-                    : `Could not render ${name}: ${error.message}`;
-            }
+            const token = ++renderToken; // after clear(): its increment must not cancel this render
+            void (async () => {
+                try {
+                    if (!graphMLText || !graphMLText.trim()) {
+                        metaEl.textContent = 'The Engine response did not include GraphML data — ' +
+                            'check the field mapped to "graphml" in js/api/engineClient.js.';
+                        return;
+                    }
+                    const parsed = parseGraphML(graphMLText);
+                    const data = prepareGraphData(parsed);
+                    const renderer = await ensureGraph();
+                    // A newer render (or clear) superseded this one while the libraries loaded.
+                    if (token !== renderToken) return;
+                    controls = createControls(stage, renderer, metaEl, fitGraph);
+                    controls.setNodes(data.nodes);
+                    renderer.enableNodeDrag(!data.hasCoordinates);
+                    fitPending = true;
+                    fitOnEngineStop = !data.hasCoordinates;
+                    renderer
+                        .nodeColor((node) => getNodeColor(node))
+                        .graphData(data);
+                    requestAnimationFrame(() => requestAnimationFrame(() => {
+                        if (fitPending && fitGraph(true)) fitPending = false;
+                    }));
+                    const nodeCount = `${data.nodeCount} ${data.nodeCount === 1 ? 'node' : 'nodes'}`;
+                    const edgeCount = `${data.edgeCount} ${data.edgeCount === 1 ? 'edge' : 'edges'}`;
+                    metaEl.textContent = `${name} · ${nodeCount} · ${edgeCount} · ` +
+                        (data.hasCoordinates
+                            ? 'GraphML coordinates preserved · 3D navigation enabled'
+                            : '3D force-directed layout');
+                } catch (error) {
+                    if (token !== renderToken) return;
+                    metaEl.textContent = error.message.includes('WebGLRenderer')
+                        ? `Could not render ${name}: WebGL is unavailable in this browser or device. ` +
+                            error.message
+                        : `Could not render ${name}: ${error.message}`;
+                }
+            })();
         },
     };
 }

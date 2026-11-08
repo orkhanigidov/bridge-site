@@ -979,20 +979,8 @@ enums:
         </div>
     </footer>
 
-    <script type="module">
-        try {
-            const THREE = await import('three');
-            window.THREE = THREE;
-            const { default: ForceGraph3D } = await import(
-                'https://esm.sh/3d-force-graph@1.80.1?external=three'
-            );
-            window.ForceGraph3D = ForceGraph3D;
-        } catch (error) {
-            document.querySelector('#graph3d-meta').textContent =
-                `Could not load the 3D renderer: ${error.message}`;
-        }
-        await import('./js/main.js');
-    </script>
+    <!-- three.js and 3d-force-graph load on demand inside graph3dViewer.js -->
+    <script type="module" src="./js/main.js"></script>
 </body>
 
 </html>
