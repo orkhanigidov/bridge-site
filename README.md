@@ -16,6 +16,9 @@ Built as the companion site for the master thesis *"Connecting OGDF to GAV-VR â€
 index.html          Main single-page site
 privacy.html        Privacy policy
 404.html            404 page for GitHub Pages
+sitemap.xml         Sitemap for search engines
+robots.txt          Crawler directives
+favicon.svg         Site icon
 assets/css/         Styles (fonts.css, site.css)
 assets/fonts/       Self-hosted web fonts (woff2)
 js/
@@ -29,6 +32,9 @@ examples/
   lua/              Lua sources for the case studies
   graphml/          Example graphs
 tools/              One-off maintenance scripts (e.g. selfhost-fonts.py)
+worker.js           Cloudflare Worker (Umami analytics proxy)
+wrangler.jsonc      Wrangler configuration for the Worker
+AGENTS.md           AI agent contribution guidelines
 ```
 
 ## Running locally

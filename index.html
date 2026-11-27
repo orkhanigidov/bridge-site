@@ -252,7 +252,7 @@
 
                     <div class="custom-foot">
                         <p class="mode-note">Both sources are sent to the Engine for execution via
-                            <code>/api/v1/execute_script</code>. The Engine enforces a whitelist sandbox — only
+                            <code>/api/v1/execute_sequential</code>. The Engine enforces a whitelist sandbox — only
                             <code>base, math, table, string</code> libraries are loaded.
                         </p>
                         <button id="run-custom" class="btn btn--primary" type="button">Execute script</button>
@@ -351,7 +351,7 @@
                     <div class="contract-grid">
                         <div>
                             <p class="label">Endpoint</p>
-                            <p><code>POST /api/v1/execute_script</code> — the Engine's single documented route
+                            <p><code>POST /api/v1/execute_sequential</code> — the Engine's single documented route
                                 (mirroring the C++ ExecutionController). The request carries the Lua script name,
                                 the input graph, and script parameters.
                             </p>
@@ -909,7 +909,7 @@ enums:
 <span class="t-prompt">$</span> ./Engine.exe --host 0.0.0.0 --port 8000
 
 <span class="t-comment"># In GAV-VR: Options Panel → Execution Mode → Native/Network</span>
-<span class="t-comment"># NetworkConfiguration.json: { "host": "localhost", "port": 8000, "endpoint": "/api/v1/execute_script" }</span>
+<span class="t-comment"># NetworkConfiguration.json: { "host": "localhost", "port": 8000, "endpoint": "/api/v1/execute_sequential" }</span>
 
 <span class="t-comment"># Optional Docker (exposes port 8000):</span>
 <span class="t-prompt">$</span> docker run --rm -p 8000:8000 -v $PWD/data:/data bridge-engine:latest</code></pre>
@@ -934,11 +934,11 @@ enums:
                                             <path d="M11 5V2H2v9h3" stroke="currentColor" stroke-width="1.5" />
                                         </svg><span data-copy-label>Copy</span></button>
                                 </div>
-                                <pre><code><span class="t-prompt">$</span> curl -X POST &lt;engine-host&gt;:8000/api/v1/execute_script \
+                                <pre><code><span class="t-prompt">$</span> curl -X POST &lt;engine-host&gt;:8000/api/v1/execute_sequential \
      -H 'Content-Type: application/json' \
      -d '{"script": "hierarchical.lua", "input": "n100e100.graphml", "params": {"layerDistance": 3.0, "nodeDistance": 3.0}}'
 <span class="t-comment"># AWS API Gateway (IAM SigV4 signing required):</span>
-<span class="t-prompt">$</span> curl -X POST &lt;gateway-host&gt;/api/v1/execute_script \
+<span class="t-prompt">$</span> curl -X POST &lt;gateway-host&gt;/api/v1/execute_sequential \
      -H 'Authorization: AWS4-HMAC-SHA256 ...' -d '...'</code></pre>
                             </div>
                         </div>
